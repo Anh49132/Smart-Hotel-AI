@@ -1,0 +1,19 @@
+# Môi trường Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv.requirements-ok
+
+# Cấu hình chứa thông tin bí mật
+.env
+
+# Database sinh ra khi chạy
+hotel.db
+test_hotel.db
+*.db-journal
+
+# File tạm
+*.log
+.idea/
+.vscode/
