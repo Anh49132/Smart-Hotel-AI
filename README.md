@@ -1,8 +1,8 @@
-# Lotus Hotel AI
+# Lotus Hotel AI.
 
 Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dựng bằng FastAPI, Jinja2, Bootstrap 5, SQLAlchemy, MySQL và Ollama. Hệ thống hỗ trợ 3 vai trò (`admin`, `receptionist`, `accountant`), quản lý phòng, khách hàng, đặt/nhận/trả/hủy phòng, dịch vụ, hóa đơn, thanh toán, báo cáo, trợ lý AI và chatbot nghiệp vụ nhiều lượt.
 
-## Cài đặt
+## Cài đặt.
 
 Yêu cầu Python 3.11+, MySQL 8+ và Ollama.
 
