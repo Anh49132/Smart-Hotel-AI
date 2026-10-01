@@ -4,7 +4,7 @@ Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dự
 
 ## Cài đặt.
 
-Yêu cầu Python 3.11+, MySQL 8+ và Ollama.
+Yêu cầu Python 3.11+. Mặc định dùng SQLite; có thể cấu hình MySQL 8+. Các tính năng AI cần Ollama.
 
 ```bash
 python -m venv .venv
@@ -14,10 +14,10 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Tạo CSDL bằng `migrations/001_initial.sql`, sau đó sửa `DATABASE_URL` trong `.env` cho đúng tài khoản MySQL.
+Mặc định database nằm tại `data/hotel.db`. Nếu dùng MySQL, tạo database rỗng và sửa `DATABASE_URL` theo ví dụ trong `.env.example`. Với database mới, chạy migration trước khi khởi động. Với database đã có bảng, xem `migrations/README.md` để đánh dấu baseline.
 
 ```bash
-mysql -u root -p < migrations/001_initial.sql
+python -m alembic upgrade head
 ollama pull qwen2.5
 ollama serve
 uvicorn main:app --reload
@@ -47,3 +47,31 @@ Swagger UI: `http://127.0.0.1:8000/docs`.
 
 Prompt AI chỉ chứa danh sách phòng, trạng thái, giá, dịch vụ, thông tin đặt phòng không nhạy cảm hoặc số liệu tổng hợp. Chatbot không tự thay đổi dữ liệu và chỉ nhận tối đa 12 tin nhắn gần nhất trong phiên. Số giấy tờ, mật khẩu, token và chi tiết thanh toán cá nhân không được gửi cho Ollama. Khi Ollama timeout hoặc chưa chạy, API trả lỗi 503 rõ ràng và không tự bịa kết quả.
 
+
+## Cấu trúc dự án
+
+```text
+backend/
+  main.py          # Khởi tạo FastAPI, vòng đời ứng dụng
+  dependencies.py  # Người dùng hiện tại và kiểm tra quyền
+  api/             # Router JSON theo phòng, đặt phòng, khách, dịch vụ, hóa đơn, AI, nhân sự
+  web/             # Router render HTML
+  models/          # Model SQLAlchemy
+  schemas/         # Dữ liệu đầu vào Pydantic
+  services/        # Nghiệp vụ và truy vấn dữ liệu cho API/giao diện
+frontend/
+  templates/       # layouts, components, pages
+  static/          # css, js, images
+core/              # Cấu hình, kết nối database, mật khẩu và JWT
+migrations/        # Alembic và lịch sử schema
+data/             # SQLite local (không đưa database vào Git)
+tests/             # backend, web, core; database tạm tự dọn sau test
+main.py            # Điểm chạy: uvicorn main:app --reload
+run-hotel.bat      # Launcher Windows
+```
+
+`core` không phụ thuộc `backend` hoặc `frontend`. Router kiểm tra quyền và gọi service; service thực hiện nghiệp vụ/truy vấn. Frontend chỉ chứa template và tài nguyên tĩnh. Model và schema hiện còn nhỏ nên được giữ trong `entities.py` và `inputs.py`, với export qua package để dễ chia nhỏ sau này.
+
+Đường dẫn template, static, `.env` và SQLite được xác định theo thư mục dự án, không phụ thuộc thư mục làm việc của tiến trình. URL trang và API vẫn giữ nguyên; CSS nằm dưới `/static/css/`.
+
+Sau khi cập nhật mã, chạy `python -m pip install -r requirements.txt`. Khi chuyển cấu trúc trên máy hiện tại, database gốc được giữ tại `data/hotel.before-restructure.db` để khôi phục; ứng dụng dùng `data/hotel.db`. Bản sao này không tự cập nhật theo dữ liệu mới.

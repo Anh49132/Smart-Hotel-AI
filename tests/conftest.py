@@ -1,16 +1,18 @@
 import os
-os.environ["DATABASE_URL"] = "sqlite:///./test_hotel.db"
+from tempfile import TemporaryDirectory
+from pathlib import Path
+
+_test_directory = TemporaryDirectory(prefix="hotel-tests-")
+os.environ["DATABASE_URL"] = f"sqlite:///{(Path(_test_directory.name) / 'hotel.db').as_posix()}"
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.database import Base, get_db
-from app.main import app
-from app.auth import hash_password
-from app.models import User, Role, RoomType, Room, Customer, HotelService
+from core.database import Base, get_db, engine
+from backend.main import app
+from core.security import hash_password
+from backend.models import User, Role, RoomType, Room, Customer, HotelService
 
 
-engine = create_engine("sqlite:///./test_hotel.db", connect_args={"check_same_thread": False})
 TestingSession = sessionmaker(bind=engine)
 
 
@@ -30,3 +32,11 @@ def client(db):
         yield c
     app.dependency_overrides.clear()
 
+
+
+
+
+
+def pytest_sessionfinish(session, exitstatus):
+    engine.dispose()
+    _test_directory.cleanup()

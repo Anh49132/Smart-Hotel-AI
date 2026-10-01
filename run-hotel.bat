@@ -36,10 +36,14 @@ if not exist "%VENV_DIR%\Scripts\python.exe" (
   "%PYTHON_EXE%" -m venv "%VENV_DIR%" || goto :error
 )
 
+if exist "%VENV_DIR%\.requirements-ok" (
+  fc /b requirements.txt "%VENV_DIR%\.requirements-ok" >nul 2>nul
+  if errorlevel 1 del "%VENV_DIR%\.requirements-ok"
+)
 if not exist "%VENV_DIR%\.requirements-ok" (
   echo [2/4] Dang cai thu vien...
   "%VENV_DIR%\Scripts\python.exe" -m pip install -r requirements.txt || goto :error
-  type nul > "%VENV_DIR%\.requirements-ok"
+  copy /y requirements.txt "%VENV_DIR%\.requirements-ok" >nul
 ) else (
   echo [2/4] Thu vien da san sang.
 )
@@ -48,7 +52,7 @@ if not exist ".env" (
   echo [3/4] Dang tao cau hinh local...
   >.env echo APP_NAME=Lotus Hotel AI
   >>.env echo SECRET_KEY=local-development-secret-change-me
-  >>.env echo DATABASE_URL=sqlite:///./hotel.db
+  >>.env echo DATABASE_URL=sqlite:///./data/hotel.db
   >>.env echo OLLAMA_URL=http://localhost:11434
   >>.env echo OLLAMA_MODEL=qwen2.5
   >>.env echo ACCESS_TOKEN_EXPIRE_MINUTES=480

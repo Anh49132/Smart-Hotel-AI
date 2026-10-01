@@ -7,13 +7,14 @@ __pycache__/
 
 # Cấu hình chứa thông tin bí mật
 .env
-
 # Database sinh ra khi chạy
 hotel.db
 test_hotel.db
 *.db-journal
-
 # File tạm
 *.log
 .idea/
 .vscode/
+.venv-local/
+data/*.db
+data/*.db-*
