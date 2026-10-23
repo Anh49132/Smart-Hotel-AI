@@ -8,7 +8,8 @@ from core.security import hash_password, verify_password
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
+from sqlalchemy import select,text
+from core.body_limit import RequestBodyLimit
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,12 +41,21 @@ async def lifespan(app: FastAPI):
             ])
             db.add_all([HotelService(name="Giặt là", unit="kg", price=50000), HotelService(name="Đưa đón sân bay", unit="chuyến", price=350000), HotelService(name="Ăn sáng", unit="suất", price=180000)])
             db.commit()
-    yield
+    try:yield
+    finally:engine.dispose()
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.add_middleware(RequestBodyLimit)
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR / "static"), name="static")
 app.include_router(api_router)
 app.include_router(web_router)
+
+@app.get('/healthz',include_in_schema=False)
+def health():
+    try:
+        with engine.connect() as db:db.execute(text('SELECT 1'))
+    except Exception:return JSONResponse({'status':'unavailable'},status_code=503,headers={'Cache-Control':'no-store'})
+    return JSONResponse({'status':'ok'},headers={'Cache-Control':'no-store'})
 
 
 @app.middleware('http')

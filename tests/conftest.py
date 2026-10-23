@@ -73,6 +73,8 @@ def client(db):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    import gc
+    gc.collect()  # Finalize request generators before Windows removes SQLite files.
     engine.dispose()
     if _pg_admin is not None:
         with _pg_admin.begin() as connection:

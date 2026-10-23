@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select, text
 from core.database import Base
 from core.db_engine import build_engine
-from backend.models import RoomType, User
+from backend.models import RoomType, User, DemoSeed
 from scripts.transfer_sqlite import transfer
 
 
@@ -38,8 +38,11 @@ def test_transfer_preserves_ids_money_hashes_and_refuses_nonempty(tmp_path, targ
         with source.begin() as db:
             db.execute(User.__table__.insert(), {'id': 7, 'username': 'test', 'full_name': 'Test', 'password_hash': 'kept-hash', 'role': 'admin', 'is_active': True})
             db.execute(RoomType.__table__.insert(), {'id': 9, 'name': 'Suite', 'capacity': 2, 'nightly_rate': Decimal('850000.25'), 'amenities': ''})
+            from datetime import date
+            db.execute(DemoSeed.__table__.insert(),{'name':'transfer-qa','anchor_date':date(2030,1,1)})
         counts = transfer(source_path, target_url)
         assert counts['users'] == 1
+        assert counts['demo_seeds'] == 1
         with target.connect() as db:
             assert db.scalar(select(User.password_hash)) == 'kept-hash'
             assert db.scalar(select(RoomType.nightly_rate)) == Decimal('850000.25')

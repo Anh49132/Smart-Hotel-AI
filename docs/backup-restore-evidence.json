@@ -1,0 +1,47 @@
+{
+  "scope": "new local QA databases only",
+  "revision": "0022",
+  "counts": {
+    "ai_results": 0,
+    "ai_review_events": 0,
+    "alembic_version": 1,
+    "booking_changes": 0,
+    "booking_nights": 43,
+    "booking_status_history": 28,
+    "booking_surcharges": 0,
+    "bookings": 21,
+    "cashier_shifts": 1,
+    "cleaning_tasks": 1,
+    "customers": 8,
+    "demo_seeds": 1,
+    "financial_adjustments": 1,
+    "hotel_policy": 1,
+    "invoices": 3,
+    "money_entries": 6,
+    "payments": 2,
+    "rate_plans": 0,
+    "room_blocks": 1,
+    "room_stays": 21,
+    "room_types": 3,
+    "rooms": 12,
+    "service_usages": 2,
+    "services": 3,
+    "users": 4
+  },
+  "invoice_totals": {
+    "room_amount": "4700000.00",
+    "service_amount": "100000.00",
+    "surcharge_amount": "0.00",
+    "discount": "0.00",
+    "total": "4800000.00",
+    "paid_amount": "3270000.00"
+  },
+  "ledger_totals": {
+    "deposit": "1300000.00",
+    "payment": "3100000.00",
+    "refund": "330000.00"
+  },
+  "sequences_compared": 23,
+  "populated_target_refused": true,
+  "archive_sha256": "07c3d7ac6e6ff2b620085c873792a9a0a1c69124b1e4c8b14d1aeff3463af335"
+}
