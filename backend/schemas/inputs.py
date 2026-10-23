@@ -13,10 +13,28 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class UserCreate(BaseModel):
-    username: str
-    full_name: str
-    password: str = Field(min_length=8)
+class PasswordIn(BaseModel):
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator('password')
+    @classmethod
+    def bcrypt_length(cls, value):
+        if len(value.encode('utf-8')) > 72:
+            raise ValueError('Mật khẩu tối đa 72 byte UTF-8')
+        return value
+
+
+class PasswordChange(PasswordIn):
+    current_password: str = Field(min_length=1, max_length=72)
+
+
+class UserRoleIn(BaseModel):
+    role: Role
+
+
+class UserCreate(PasswordIn):
+    username: str = Field(min_length=3, max_length=50, pattern=r'^[A-Za-z0-9_.-]+$')
+    full_name: str = Field(min_length=1, max_length=120)
     role: Role
 
 

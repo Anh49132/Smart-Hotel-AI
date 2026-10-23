@@ -14,12 +14,17 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Vui lòng đăng nhập")
     try:
-        user_id = int(jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])["sub"])
-    except (JWTError, KeyError, ValueError):
+        claims = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+        user_id = int(claims["sub"])
+    except (JWTError, KeyError, ValueError, TypeError):
         raise HTTPException(status_code=401, detail="Phiên đăng nhập không hợp lệ")
     user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Tài khoản không hoạt động")
+    if claims.get("ver", 0) != user.token_version:
+        raise HTTPException(401, "Phiên đã bị thu hồi. Vui lòng đăng nhập lại")
+    if user.must_change_password and request.url.path not in ("/account", "/api/account/password", "/logout"):
+        raise HTTPException(403, "Vui lòng vào Tài khoản để đổi mật khẩu tạm thời")
     return user
 
 def require_roles(*roles: Role):

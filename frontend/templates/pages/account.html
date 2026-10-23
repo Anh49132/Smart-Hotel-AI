@@ -1,0 +1,18 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Tài khoản{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Tài khoản</h1><p>{{user.full_name}} · {{user.username}}</p></div></div>
+<div class="panel p-4" style="max-width:560px">
+{% if user.must_change_password %}<div class="alert alert-warning">Bạn cần đổi mật khẩu tạm thời trước khi sử dụng hệ thống.</div>{% endif %}
+<h2 class="h5">Đổi mật khẩu</h2>
+<p class="text-secondary">Từ 8 ký tự, tối đa 72 byte UTF-8. Các phiên đăng nhập cũ sẽ bị thu hồi.</p>
+<form id="passwordForm">
+<label class="form-label" for="currentPassword">Mật khẩu hiện tại</label><input id="currentPassword" class="form-control mb-3" name="current_password" type="password" autocomplete="current-password" required>
+<label class="form-label" for="newPassword">Mật khẩu mới</label><input id="newPassword" class="form-control mb-3" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+<label class="form-label" for="confirmPassword">Nhập lại mật khẩu mới</label><input id="confirmPassword" class="form-control mb-3" type="password" autocomplete="new-password" required>
+<button class="btn btn-primary">Lưu mật khẩu</button>
+</form></div>
+{% endblock %}
+{% block scripts %}<script>
+document.getElementById('passwordForm').onsubmit=async e=>{e.preventDefault();const form=e.target,button=form.querySelector('button');if(form.password.value!==document.getElementById('confirmPassword').value){showToast('Hai mật khẩu mới không trùng nhau',false);return}button.disabled=true;try{await apiRequest('/api/account/password',{method:'POST',body:JSON.stringify(formJSON(form))});showToast('Đã đổi mật khẩu và thu hồi các phiên cũ');setTimeout(()=>location.href='/',700)}catch(err){showToast(err.message,false)}finally{button.disabled=false}};
+</script>{% endblock %}
