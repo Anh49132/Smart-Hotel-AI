@@ -196,3 +196,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Slide 10 trang bằng Artifact Tool/Artifact Session, nội dung sửa được, có ảnh UI QA và URL Render; render kiểm tra từng trang, sửa ảnh nhúng, kiểm tra cấu trúc/font/bố cục và import lại. Không giả đã mở trong PowerPoint.
 - Cloud thật: CI Linux PostgreSQL/SQLite/Docker success; Render live, 18 smoke checks gồm Gemini/PDF. Thêm một dịch vụ QA riêng, redeploy và fingerprint phòng/booking/dịch vụ/AI khớp; mật khẩu đổi không bị reset. Dự án nhatot giữ metadata cũ.
 - Sinh viên còn cần tự review chéo, diễn tập và trình bày; author Git theo phân công không chứng minh các hoạt động con người này.
+
+
+## Bỏ ca thu ngân theo phạm vi đề bài
+- Yêu cầu người dùng: “Ca thu ngân phiền, nếu đề không yêu cầu thì bỏ.” Đề yêu cầu hóa đơn/theo dõi thanh toán, không bắt buộc mở/chốt ca.
+- Xóa màn hình/menu/API ca và sinh AI bàn giao; thu cọc/thanh toán/hoàn trực tiếp theo booking. Giữ quyền, giới hạn số tiền, khóa và request chống lặp. Phương thức thu/hoàn ghi theo thực tế, không còn kiểm tra số dư két của ca.
+- Giữ schema/record ca cũ và FK để bảo toàn lịch sử; không xóa/backfill dữ liệu tài chính. Seed mới không tạo ca. Bộ test dùng fixture không mở ca và bổ sung hồi quy ca cũ không chặn tiền, API/menu đã gỡ.
+- Cập nhật README, hướng dẫn demo, báo cáo và slide cho luồng đơn giản. Các mục C16/C20 trong nhật ký/kế hoạch là lịch sử triển khai, không mô tả tính năng hiện hành.

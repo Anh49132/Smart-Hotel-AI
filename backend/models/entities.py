@@ -263,6 +263,7 @@ class MoneyEntry(Base):
 
 
 class CashierShift(Base):
+    """Legacy archive only; retained for historical MoneyEntry references."""
     __tablename__='cashier_shifts'
     __table_args__=(CheckConstraint("status IN ('open','closed')",name='ck_shift_status'),CheckConstraint('opening_cash >= 0 AND (counted_cash IS NULL OR counted_cash >= 0)',name='ck_shift_amounts'),Index('uq_shift_open_cashier','cashier_id',unique=True,sqlite_where=text("status='open'"),postgresql_where=text("status='open'")))
     id: Mapped[int]=mapped_column(primary_key=True)

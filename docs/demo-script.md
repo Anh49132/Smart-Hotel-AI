@@ -6,9 +6,9 @@ Trước giờ báo cáo: mở web Render trước để đánh thức, kiểm t
 |---|---|---|
 | 0–1 phút | Giới thiệu phạm vi, vai trò và kiến trúc | App nội bộ một khách sạn, nhân viên vận hành |
 | 1–3 phút | Lịch ngày/loại/khách; AI tư vấn; tạo booking từ ô lịch | Phòng trống lọc tại backend, AI không giữ phòng |
-| 3–4 phút | Mở ca, thu cọc, nhận phòng | Tiền được ghi sổ, chống bấm lặp; lịch khác trạng thái vật lý |
+| 3–4 phút | Thu cọc trực tiếp, nhận phòng | Tiền được ghi sổ, chống bấm lặp; lịch khác trạng thái vật lý |
 | 4–6 phút | Thêm dịch vụ; xem đổi phòng/lịch; trả phòng; thu còn lại | Giá từng đêm và bảng kê/tiền cọc đối chiếu, xuất PDF |
-| 6–7 phút | Buồng phòng dọn và kiểm tra; xem ca/hủy có phí/hoàn ở mẫu có sẵn | Phân quyền và audit; không xóa giao dịch |
+| 6–7 phút | Buồng phòng dọn và kiểm tra; xem hủy có phí/hoàn ở mẫu có sẵn | Phân quyền và audit; không xóa giao dịch |
 | 7–9 phút | Email nháp, duyệt; báo cáo kỳ và nhận xét Gemini | Không gửi email tự động; số liệu do code xác minh |
 | 9–10 phút | Minh chứng test, backup/restore, Git Flow và giới hạn | Phân biệt mock/AI thật, Free/cold start và hạn DB |
 

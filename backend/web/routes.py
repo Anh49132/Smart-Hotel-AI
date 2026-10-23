@@ -183,12 +183,3 @@ def reports_page(request:Request,start:date|None=None,end:date|None=None,user=De
     start=start or hotel_today().replace(day=1)
     end=end or hotel_today()+timedelta(days=1)
     return templates.TemplateResponse('pages/reports.html',page_context(request,user,'reports',report=operating_report(db,start,end)))
-
-
-@router.get('/shifts',response_class=HTMLResponse)
-def shifts_page(request:Request,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
-    from backend.api.shifts import history
-    from backend.services.shifts_service import current_shift,shift_view
-    users=db.scalars(select(User)).all()
-    current=current_shift(db,user.id)
-    return templates.TemplateResponse('pages/shifts.html',page_context(request,user,'shifts',current=shift_view(db,current) if current else None,shifts=history(db,user),names={p.id:p.full_name for p in users},recipients=[p for p in users if p.is_active and p.id!=user.id and p.role in (Role.admin,Role.accountant,Role.receptionist)]))

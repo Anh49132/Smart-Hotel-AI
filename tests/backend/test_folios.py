@@ -29,8 +29,6 @@ def test_folio_access_and_own_deposit_receipt(client,db):
     booking=create_booking(db,data())
     user=User(username='receiptclerk',full_name='Clerk',role=Role.receptionist,password_hash=hash_password('Staff@123'))
     db.add(user);db.commit()
-    from backend.services.shifts_service import open_shift
-    open_shift(db,user,Decimal(0))
     r=receipt(db,booking.id,ReceiptIn(amount=100000,request_key='clerk-deposit-key'),user.id)
     client.cookies.set('access_token',create_token(user.id,'receptionist',user.token_version))
     assert client.get(f'/bookings/{booking.id}/folio').status_code==403

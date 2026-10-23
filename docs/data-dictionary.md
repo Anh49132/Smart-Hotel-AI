@@ -1,5 +1,7 @@
 # Từ điển dữ liệu
 
+cashier_shifts và money_entries.shift_id chỉ còn lưu trữ dữ liệu cũ sau khi bỏ ca thu ngân. Giao dịch mới không dùng ca; giữ bảng/FK để bảo toàn lịch sử, schema vẫn 0022.
+
 Sinh từ SQLAlchemy metadata của bản bàn giao; không đọc dữ liệu khách.
 
 ## customers
