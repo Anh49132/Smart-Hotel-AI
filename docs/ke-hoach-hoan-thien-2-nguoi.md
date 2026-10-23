@@ -156,8 +156,15 @@ Phụ thuộc: C21 tích hợp sau C20; C22 chuẩn bị dữ liệu từ trư�
 
 ## Tiến độ đợt đầu — 23/10/2026
 
-Đã thực hiện R01, C01, C02, C03, C04 và nhập vào dev bằng merge commit local. Đây là 5 commit nghiệp vụ, ngoài commit baseline và các merge commit. Các nhánh chức năng được giữ để đối chiếu. Chưa push/PR/review trên GitHub, chưa phát hành dev lên main và chưa triển khai R02.
+Đã thực hiện R01, C01, C02, C03, C04 và nhập vào dev bằng merge commit local. Đây là 5 commit nghiệp vụ, ngoài commit baseline và các merge commit. Các nhánh chức năng được giữ để đối chiếu. R01–C04 đã push lên GitHub; chưa PR/review trên GitHub, chưa phát hành dev lên main và chưa triển khai R02.
 
 Bộ kiểm thử: SQLite 82 đạt, 2 bỏ qua do chỉ áp dụng PostgreSQL; PostgreSQL 84 đạt trên PostgreSQL 16 local, schema kiểm thử tách riêng. Test dùng dữ liệu giả, không gọi Gemini thật. Còn cảnh báo deprecation từ thư viện với Python hiện tại; test không có lỗi.
 
 Database local SQLite đã sao lưu `data/hotel.before-first-five.20261023-113803.db`, nâng từ 0002 lên 0006, đối chiếu số dòng các bảng và tổng tiền hóa đơn không đổi, integrity/FK check đạt. Đây chưa phải chuyển dữ liệu lên PostgreSQL Render. Dữ liệu legacy chưa có giá đã chốt vẫn cần đối chiếu như tài liệu PostgreSQL.
+
+
+## Đợt thử hai tài khoản — C05/C06
+
+Theo yêu cầu tiếp theo, thực hiện C05 (Anh49132) rồi C06 (khanhhoang1012006-svg) trên hai nhánh riêng từ dev; R02 vẫn đang chờ triển khai. C05 đã push bằng danh tính GitHub Anh49132 được kiểm chứng qua API /user. C06 sử dụng bước đăng nhập riêng của Khanh trước khi push, không suy ra người push từ tác giả commit. Giữ merge local vào dev, chưa coi là review chéo GitHub.
+
+Nghiệm thu mã C05+C06: PostgreSQL 100 test đạt; SQLite 98 đạt/2 bỏ qua PostgreSQL; migration local giữ số dòng và tổng tiền cũ. Kiểm tra tương tác trình duyệt và deploy live vẫn thuộc công việc chưa hoàn tất.

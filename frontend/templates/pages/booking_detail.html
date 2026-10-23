@@ -1,0 +1,49 @@
+{% extends 'layouts/base.html' %}
+{% macro currency(value) %}{{'{:,.2f}'.format(value|float)}} ₫{% endmacro %}
+{% block title %}{{detail.code}} · Chi tiết đặt phòng{% endblock %}
+{% block content %}
+<div class="page-head"><div><a href="/bookings" class="text-decoration-none">← Danh sách đặt phòng</a><h1 class="mt-2">{{detail.code}}</h1><p>{{detail.customer.name}} · Phòng {{detail.room.number}} · <span class="status {{detail.status}}">{{status_label(detail.status)}}</span></p></div>
+<div class="d-flex gap-2 flex-wrap">
+{% if detail.actions.check_in %}<button class="btn btn-primary detail-action" data-action="check-in">Nhận phòng</button>{% endif %}
+{% if detail.actions.check_out %}<button class="btn btn-primary detail-action" data-action="check-out">Trả phòng & lập hóa đơn</button>{% endif %}
+{% if detail.actions.cancel %}<button class="btn btn-outline-danger detail-action" data-action="cancel">Hủy đặt phòng</button>{% endif %}
+</div></div>
+{% if detail.status=='confirmed' and detail.room.status!='available' %}<div class="alert alert-info">Phòng hiện {{status_label(detail.room.status)}}. Nhận phòng chỉ thực hiện khi buồng phòng đã sẵn sàng.</div>{% endif %}
+{% if detail.status=='confirmed' and detail.invoice %}<div class="alert alert-info">Đặt phòng đã có hóa đơn. Cần xử lý điều chỉnh/hoàn tiền trước khi hủy.</div>{% endif %}
+<div class="row g-4">
+<div class="col-lg-7"><div class="panel p-4"><h2 class="h5">Khách & lưu trú</h2><dl class="row mb-0">
+<dt class="col-sm-4">Khách hàng</dt><dd class="col-sm-8">{{detail.customer.name}}</dd>
+<dt class="col-sm-4">Liên hệ</dt><dd class="col-sm-8">{{detail.customer.phone}} · {{detail.customer.email or 'Chưa có email'}}</dd>
+<dt class="col-sm-4">Phòng / loại</dt><dd class="col-sm-8">{{detail.room.number}} · {{detail.room.type}}</dd>
+<dt class="col-sm-4">Ngày lưu trú</dt><dd class="col-sm-8">{{detail.check_in}} → {{detail.check_out}} · {{detail.nights_count}} đêm · {{detail.guests}} khách</dd>
+<dt class="col-sm-4">Ghi chú</dt><dd class="col-sm-8" style="white-space:pre-wrap">{{detail.note or 'Không có ghi chú'}}</dd></dl></div>
+<div class="panel mt-4 p-4"><h2 class="h5">Giá phòng đã chốt</h2>
+{% if detail.nightly_prices %}<div class="table-responsive"><table class="table"><thead><tr><th>Đêm</th><th>Nguồn giá</th><th class="text-end">Thành tiền</th></tr></thead><tbody>{% for night in detail.nightly_prices %}<tr><td>{{night.date}}</td><td>{{night.source}}</td><td class="text-end">{{currency(night.amount)}}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}<p class="text-secondary">Dữ liệu cũ chưa lưu giá từng đêm. Đơn giá bình quân đã lưu: {{currency(detail.booked_average)}}. Nguồn: {{detail.rate_source}}. Đối chiếu chứng từ khi cần xác nhận giá lịch sử.</p>{% endif %}
+<div class="d-flex justify-content-between"><b>Tiền phòng</b><b>{{currency(detail.estimate.room_amount)}}</b></div></div>
+<div class="panel mt-4 p-4"><h2 class="h5">Dịch vụ phát sinh</h2><div class="table-responsive"><table class="table"><thead><tr><th>Dịch vụ</th><th>SL</th><th>Đơn giá đã ghi</th><th>Thành tiền</th></tr></thead><tbody>{% for s in detail.services %}<tr><td>{{s.name}}<small class="d-block text-secondary">{{s.at}} UTC</small></td><td>{{s.quantity}} {{s.unit}}</td><td>{{currency(s.unit_price)}}</td><td>{{currency(s.total)}}</td></tr>{% else %}<tr><td colspan="4" class="text-secondary">Chưa phát sinh dịch vụ.</td></tr>{% endfor %}</tbody></table></div>
+{% if detail.actions.add_service %}{% if services %}<form id="detailServiceForm" class="row g-2"><div class="col-sm-7"><label class="form-label">Dịch vụ</label><select class="form-select" name="service_id" required>{% for s in services %}<option value="{{s.id}}">{{s.name}} · {{currency(s.price)}}/{{s.unit}}</option>{% endfor %}</select></div><div class="col-sm-2"><label class="form-label">Số lượng</label><input name="quantity" class="form-control" type="number" min="1" value="1" required></div><div class="col-sm-3 d-flex align-items-end"><button class="btn btn-primary w-100">Ghi dịch vụ</button></div></form>{% else %}<p class="text-secondary">Chưa có dịch vụ đang hoạt động. Liên hệ quản trị viên.</p>{% endif %}{% endif %}
+</div></div>
+<div class="col-lg-5"><div class="panel p-4"><h2 class="h5">Tổng tiền hiện tại</h2>
+<p class="text-secondary">{% if detail.status=='cancelled' %}Đặt phòng đã hủy. Số tiền bên dưới là giá trị tham khảo của lịch đã hủy.{% else %}Dự tính từ giá đã chốt và dịch vụ đã ghi; hóa đơn có thể chưa cập nhật dịch vụ mới.{% endif %}</p>
+<div class="invoice-row"><span>Tiền phòng</span><b>{{currency(detail.estimate.room_amount)}}</b></div><div class="invoice-row"><span>Dịch vụ</span><b>{{currency(detail.estimate.service_amount)}}</b></div><div class="invoice-row"><span>Giảm giá trên hóa đơn</span><b>{{currency(detail.estimate.discount)}}</b></div><div class="invoice-row total"><span>Tổng</span><b>{{currency(detail.estimate.total)}}</b></div>
+{% if detail.actions.calculate %}<button id="calculateDetailInvoice" class="btn btn-outline-primary w-100 mt-3">{{'Cập nhật hóa đơn tạm' if detail.invoice else 'Lập hóa đơn tạm'}}</button>{% endif %}</div>
+<div class="panel mt-4 p-4"><h2 class="h5">Hóa đơn & thanh toán</h2>{% if detail.invoice %}
+<p>Hóa đơn #{{detail.invoice.id}} · {{'Đã chốt khi trả phòng' if detail.invoice.finalized else 'Hóa đơn tạm'}} · <span class="status {{detail.invoice.status}}">{{status_label(detail.invoice.status)}}</span></p>
+<div class="invoice-row"><span>Tổng hóa đơn</span><b>{{currency(detail.invoice.total)}}</b></div><div class="invoice-row"><span>Đã thanh toán</span><b class="text-success">{{currency(detail.invoice.paid_amount)}}</b></div><div class="invoice-row total"><span>Còn phải thu</span><b>{{currency(detail.invoice.remaining)}}</b></div>
+{% if detail.actions.pay %}<form id="detailPaymentForm" class="mt-3"><label class="form-label">Số tiền thu thêm</label><input name="amount" class="form-control mb-2" type="number" step="0.01" min="0.01" max="{{detail.invoice.remaining}}" value="{{detail.invoice.remaining}}" required><button class="btn btn-primary w-100">Ghi nhận thanh toán</button></form>{% endif %}
+{% else %}<p class="text-secondary">Chưa có hóa đơn. Hóa đơn được lập bởi kế toán/quản trị viên hoặc tự tạo khi trả phòng.</p>{% endif %}</div>
+<div class="panel mt-4 p-4"><h2 class="h5">Lịch sử trạng thái</h2><p class="text-secondary small">Thời gian UTC. Tạo lúc {{detail.created_at}}.</p><ol class="list-group list-group-numbered">{% for h in detail.history %}<li class="list-group-item"><b>{{status_label(h.from_status) if h.from_status else 'Tạo đặt phòng'}} → {{status_label(h.to_status)}}</b><small class="d-block text-secondary">{{h.at}} UTC · {{h.actor}}</small></li>{% else %}<li class="list-group-item text-secondary">Chưa có lịch sử được ghi cho dữ liệu này.</li>{% endfor %}</ol></div>
+{% if detail.can_view_payments %}<div class="panel mt-4 p-4"><h2 class="h5">Lịch sử thu tiền</h2>
+{% if detail.invoice and detail.invoice.ledger_gap|float != 0 %}<div class="alert alert-warning">Chênh lệch giữa số đã thu và giao dịch được ghi: {{currency(detail.invoice.ledger_gap)}}. Dữ liệu cũ có thể chưa có lịch sử; cần đối chiếu chứng từ.</div>{% endif %}
+<ul class="list-group">{% for p in detail.payments %}<li class="list-group-item"><b>{{currency(p.amount)}}</b><small class="d-block text-secondary">{{p.at}} UTC · {{p.actor}}</small></li>{% else %}<li class="list-group-item text-secondary">Chưa có giao dịch được ghi.</li>{% endfor %}</ul></div>{% endif %}
+</div></div>
+{% endblock %}
+{% block scripts %}<script>
+const detailBookingId={{detail.id}},detailInvoiceId={{detail.invoice.id if detail.invoice else 'null'}};
+async function detailMutation(button,url,body){button.disabled=true;try{await apiRequest(url,{method:'POST',...(body?{body:JSON.stringify(body)}:{})});location.reload()}catch(err){showToast(err.message,false);button.disabled=false}}
+document.querySelectorAll('.detail-action').forEach(b=>b.onclick=()=>{const labels={'check-in':'nhận phòng','check-out':'trả phòng và lập hóa đơn','cancel':'hủy đặt phòng'};if(confirm(`Xác nhận ${labels[b.dataset.action]}?`))detailMutation(b,`/api/bookings/${detailBookingId}/${b.dataset.action}`)});
+const serviceForm=document.getElementById('detailServiceForm');if(serviceForm)serviceForm.onsubmit=e=>{e.preventDefault();detailMutation(e.submitter,'/api/service-usages',{booking_id:detailBookingId,service_id:+serviceForm.elements.service_id.value,quantity:+serviceForm.elements.quantity.value})};
+const calculateButton=document.getElementById('calculateDetailInvoice');if(calculateButton)calculateButton.onclick=()=>detailMutation(calculateButton,`/api/invoices/${detailBookingId}/calculate`);
+const paymentForm=document.getElementById('detailPaymentForm');if(paymentForm)paymentForm.onsubmit=e=>{e.preventDefault();if(confirm('Xác nhận đã nhận số tiền này từ khách?'))detailMutation(e.submitter,`/api/invoices/${detailInvoiceId}/payments`,{amount:paymentForm.elements.amount.value})};
+</script>{% endblock %}

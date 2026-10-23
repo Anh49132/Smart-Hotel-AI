@@ -46,3 +46,12 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Kiểm chứng: giá cuối tuần/ngày đặc biệt, sát biên, bảng giá trùng đồng thời, sửa bảng giá sau đặt, thiếu snapshot, sức chứa, ngừng bán, quyền và migration SQLite/PostgreSQL. Không gọi Gemini thật.
 
 - Kết quả C05: toàn bộ SQLite 90 passed/2 skipped; PostgreSQL 92 passed trên schema riêng. Chưa triển khai Render.
+
+
+## C06 — Chi tiết đặt phòng
+
+- AI hỗ trợ tách service chỉ đọc, API GET /api/bookings/{id} và trang /bookings/{id}; liên kết từ danh sách/tổng quan/hóa đơn. Một trang tập hợp giá đã chốt, khách, dịch vụ, hóa đơn, lịch sử trạng thái và khoản thu.
+- Kiểm soát: không tạo hóa đơn khi xem, phân biệt dự tính với hóa đơn tạm, giữ nguyên hóa đơn chốt. Không xuất số giấy tờ/hash mật khẩu; Jinja escape ghi chú. Lịch sử thu tiền chỉ cho admin/kế toán, nút nghiệp vụ kiểm tra quyền/trạng thái cả UI và backend.
+- Người dùng yêu cầu thử tạo/push C06 bằng đăng nhập GitHub thật của Khanh; tác giả commit Khanh và tài khoản push được xác minh riêng, không dùng tên/email Git để giả định tài khoản push.
+- Kiểm chứng C05+C06: PostgreSQL 100 passed; SQLite 98 passed/2 skipped. Test cả luồng lưu trú, ba vai trò, dữ liệu trống/legacy/hủy/không tồn tại, XSS ghi chú, chênh lệch lịch sử thu và không có tác dụng phụ khi xem. Không gọi Gemini thật.
+- DB local đã sao lưu trước C05, nâng 0006→0007, đối chiếu số dòng/tổng hóa đơn và FK/integrity đạt; các trang đã render bằng DB local và JavaScript nội tuyến được kiểm tra cú pháp bằng Node. Chưa thực hiện kiểm thử tương tác trình duyệt hoặc triển khai Render trong đợt này.
