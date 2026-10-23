@@ -61,6 +61,7 @@
       <small>PHÂN TÍCH KINH DOANH</small>
       <h4>Báo cáo AI nhanh</h4>
       <p>Phân tích công suất và gợi ý chương trình khuyến mãi từ dữ liệu hiện tại.</p>
+      <div class="row g-2 mb-3"><label class="col-6">Từ ngày<input id="reportStart" type="date" class="form-control" required></label><label class="col-6">Đến trước ngày<input id="reportEnd" type="date" class="form-control" required></label></div>
       <button id="reportBtn" class="btn btn-light w-100">Tạo báo cáo</button>
       <div id="reportResult" class="ai-result ai-result-dark d-none"></div>
     </div>
@@ -123,9 +124,10 @@ document.getElementById('copyEmail').onclick=async()=>{
 {% endif %}
 
 {% if user.role.value in ['admin', 'accountant'] %}
+document.getElementById('reportStart').value=new Date(new Date().getFullYear(),new Date().getMonth(),1,12).toISOString().slice(0,10);document.getElementById('reportEnd').value=new Date(Date.now()+86400000).toISOString().slice(0,10);
 document.getElementById('reportBtn').onclick=e=>aiCall(e.currentTarget,async()=>{
   const el=document.getElementById('reportResult');el.classList.remove('d-none');el.textContent='Đang tổng hợp số liệu...';
-  try{const j=await apiRequest('/api/ai/report');el.textContent=j.content}catch(err){el.textContent=err.message}
+  try{const j=await apiRequest(`/api/ai/report?start=${document.getElementById('reportStart').value}&end=${document.getElementById('reportEnd').value}`,{method:'POST',body:'{}'});el.textContent=j.content}catch(err){el.textContent=err.message}
 });
 {% endif %}
 

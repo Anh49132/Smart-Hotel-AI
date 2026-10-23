@@ -31,4 +31,6 @@ async def draft_email(db,booking_id,kind):
     text=await generate_text(json.dumps({'kind':kind,'facts':facts},ensure_ascii=False),EMAIL_SYSTEM)
     db.expire_all()
     if email_context(db,booking_id,kind)!=facts:raise HTTPException(409,'Đặt phòng/số dư vừa thay đổi; hãy soạn bản nháp mới')
-    return sanitize_free_text(text),facts
+    # A generated BK-A1234567 code resembles a passport to the generic redactor.
+    protected=text.replace(facts['booking_code'],'{{VERIFIED_BOOKING_CODE}}')
+    return sanitize_free_text(protected).replace('{{VERIFIED_BOOKING_CODE}}',facts['booking_code']),facts

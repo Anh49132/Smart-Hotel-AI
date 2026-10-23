@@ -109,8 +109,9 @@ def test_room_advice_and_report_use_gemini(client, transport):
     payload=json.loads(transport['requests'][0].content)
     assert payload['generationConfig']['responseMimeType']=='application/json'
     assert 'responseJsonSchema' in payload['generationConfig']
-    transport['response']=answer()
-    assert client.get("/api/ai/report").json()["content"] == TEXT
+    transport['response']=answer([{'text':json.dumps({'highlights':[{'key':'occupancy','value':'0.0'}],'promotion_codes':[]})}])
+    report=client.get('/api/ai/report')
+    assert report.status_code==200 and 'Công suất' in report.json()['content']
     assert len(transport["requests"]) == 2
 
 
