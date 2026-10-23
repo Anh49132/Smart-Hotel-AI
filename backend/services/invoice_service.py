@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from backend.models import Booking, BookingStatus, Invoice, Payment, PaymentStatus, ServiceUsage
 from backend.schemas import PaymentIn
 from .transactions import lock_room, write_transaction
+from .rates_service import booked_room_amount
 
 
 def money(value):
@@ -22,7 +23,7 @@ def calculate_invoice(db: Session, booking: Booking, discount: Decimal | None = 
         raise HTTPException(409, "Khoảng ngày lưu trú không hợp lệ")
     # Keep historical finalized amounts exact, even if a legacy nightly average rounded.
     finalized = invoice is not None and booking.status == BookingStatus.checked_out
-    room_amount = invoice.room_amount if finalized else money(nights * booking.booked_nightly_rate)
+    room_amount = invoice.room_amount if finalized else money(booked_room_amount(db, booking))
     service_amount = invoice.service_amount if finalized else money(db.scalar(select(func.coalesce(func.sum(ServiceUsage.unit_price * ServiceUsage.quantity), 0)).where(ServiceUsage.booking_id == booking.id)))
     if discount is not None and discount != money(discount):
         raise HTTPException(400, "Giảm giá có tối đa hai chữ số thập phân")

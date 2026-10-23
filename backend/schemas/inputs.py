@@ -39,10 +39,26 @@ class UserCreate(PasswordIn):
 
 
 class RoomTypeIn(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=80)
     capacity: int = Field(ge=1, le=20)
     nightly_rate: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     amenities: str = ""
+    weekend_rate: Optional[Decimal] = Field(default=None, gt=0, max_digits=12, decimal_places=2)
+    is_active: bool = True
+
+
+class RatePlanIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    start_date: date
+    end_date: date
+    nightly_rate: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    is_active: bool = True
+
+    @model_validator(mode='after')
+    def dates(self):
+        if self.end_date <= self.start_date:
+            raise ValueError('Ngày kết thúc phải sau ngày bắt đầu (không gồm ngày kết thúc)')
+        return self
 
 
 class RoomIn(BaseModel):
@@ -71,6 +87,8 @@ class BookingIn(BaseModel):
     def validate_dates(self):
         if self.check_out <= self.check_in:
             raise ValueError("Ngày trả phải sau ngày nhận")
+        if (self.check_out - self.check_in).days > 365:
+            raise ValueError('Mỗi đặt phòng tối đa 365 đêm')
         return self
 
 
@@ -97,6 +115,12 @@ class RoomAdviceIn(BaseModel):
     check_in: date
     check_out: date
     amenities: str = ""
+
+    @model_validator(mode='after')
+    def stay_dates(self):
+        if not 1 <= (self.check_out - self.check_in).days <= 365:
+            raise ValueError('Khoảng lưu trú phải từ 1 đến 365 đêm')
+        return self
 
 
 class EmailRequest(BaseModel):

@@ -1,4 +1,5 @@
-from backend.models import Booking, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus
+from backend.models import Booking, BookingNight, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus
+from .rates_service import lock_room_type, quote
 from backend.schemas import BookingIn
 from backend.services.invoice_service import calculate_invoice
 from datetime import date
@@ -29,13 +30,16 @@ def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) ->
             raise HTTPException(404, "Không tìm thấy khách hàng")
         if not room or room.status == RoomStatus.maintenance:
             raise HTTPException(400, "Phòng không tồn tại hoặc đang bảo trì")
-        if data.guests > room.room_type.capacity:
+        room_type = lock_room_type(db, room.room_type_id)
+        if data.guests > room_type.capacity:
             raise HTTPException(400, "Số khách vượt sức chứa của phòng")
         if not room_is_available(db, data.room_id, data.check_in, data.check_out):
             raise HTTPException(409, "Phòng đã có lịch trùng trong khoảng ngày này")
-        booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", booked_nightly_rate=room.room_type.nightly_rate, **data.model_dump())
+        prices = quote(db, room_type, data.check_in, data.check_out)
+        booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", booked_nightly_rate=prices['average'], booked_rate_source='nightly_snapshot', **data.model_dump())
         db.add(booking)
         db.flush()
+        db.add_all([BookingNight(booking_id=booking.id, **night) for night in prices['nights']])
         db.add(BookingStatusHistory(booking_id=booking.id, to_status=BookingStatus.confirmed, changed_by=actor_id))
         db.commit()
         db.refresh(booking)

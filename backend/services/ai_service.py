@@ -1,4 +1,5 @@
 from .booking_service import ACTIVE_BOOKING_STATUSES
+from .rates_service import quote
 from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType
 from .gemini_client import generate_content, generate_text, sanitize_free_text
 from datetime import date
@@ -40,7 +41,7 @@ async def generate_chat(messages: list[dict], context: dict) -> str:
 
 def chatbot_context(db: Session) -> dict:
     rooms = db.scalars(
-        select(Room).options(selectinload(Room.room_type)).order_by(Room.number)
+        select(Room).join(RoomType).where(RoomType.is_active.is_(True)).options(selectinload(Room.room_type)).order_by(Room.number)
     ).all()
     services = db.scalars(
         select(HotelService).where(HotelService.active == True).order_by(HotelService.name)
@@ -103,14 +104,28 @@ async def hotel_chat(db: Session, messages) -> str:
 
 def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decimal):
     blocked = select(Booking.room_id).where(Booking.status.in_(ACTIVE_BOOKING_STATUSES), Booking.check_in < check_out, check_in < Booking.check_out)
-    return db.scalars(select(Room).join(RoomType).where(Room.id.not_in(blocked), RoomType.capacity >= guests, RoomType.nightly_rate <= budget, Room.status != RoomStatus.maintenance)).all()
+    rooms = db.scalars(select(Room).join(RoomType).where(Room.id.not_in(blocked), RoomType.capacity >= guests, RoomType.is_active.is_(True), Room.status != RoomStatus.maintenance)).all()
+    # A nightly budget is a ceiling for every night, including weekend/holiday prices.
+    prices = {}
+    result = []
+    for room in rooms:
+        if room.room_type_id not in prices:
+            prices[room.room_type_id] = quote(db, room.room_type, check_in, check_out)
+        if all(n['amount'] <= budget for n in prices[room.room_type_id]['nights']):
+            result.append(room)
+    return result
 
 
 async def advise_rooms(db: Session, data) -> dict:
     rooms = available_rooms(db, data.check_in, data.check_out, data.guests, data.budget)
     if not rooms:
         return {"message": "Không có phòng phù hợp và còn trống trong khoảng ngày đã chọn.", "rooms": []}
-    safe = [{"number": sanitize_free_text(r.number), "type": sanitize_free_text(r.room_type.name), "capacity": r.room_type.capacity, "price": float(r.room_type.nightly_rate), "amenities": sanitize_free_text(r.room_type.amenities)} for r in rooms]
+    safe = []
+    for r in rooms:
+        prices = quote(db, r.room_type, data.check_in, data.check_out)
+        safe.append({"number": sanitize_free_text(r.number), "type": sanitize_free_text(r.room_type.name), "capacity": r.room_type.capacity,
+                     "price": float(prices['average']), "stay_total": float(prices['total']), "price_basis": "Trung bình mỗi đêm; tổng theo ngày lưu trú",
+                     "amenities": sanitize_free_text(r.room_type.amenities)})
     prompt = f"Nhu cầu: {data.guests} khách, ngân sách {data.budget}/đêm, từ {data.check_in} đến {data.check_out}, tiện ích: {sanitize_free_text(data.amenities) or 'không yêu cầu'}. Danh sách phòng trống: {json.dumps(safe, ensure_ascii=False)}"
     return {"message": await generate_text(prompt, ROOM_SYSTEM), "rooms": safe[:3]}
 
