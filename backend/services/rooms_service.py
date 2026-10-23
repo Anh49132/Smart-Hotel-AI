@@ -18,8 +18,11 @@ def validate_physical_status(db, room_id, status):
     if not checked_in and status == RoomStatus.occupied:
         raise HTTPException(409, 'Dùng thao tác nhận phòng để chuyển sang đang ở')
 
-def list_rooms(check_in: Optional[date], check_out: Optional[date], guests: int, db: Session):
+def list_rooms(check_in: Optional[date], check_out: Optional[date], guests: int, db: Session, type_id: int | None = None, floor: int | None = None):
     query = select(Room).options(selectinload(Room.room_type)).join(RoomType).order_by(Room.number)
+    if type_id is not None: query = query.where(Room.room_type_id == type_id)
+    if floor is not None: query = query.where(Room.floor == floor)
+    query = query.where(RoomType.capacity >= guests)
     if check_in and check_out:
         if check_out <= check_in:
             raise HTTPException(422, 'Ngày trả phải sau ngày nhận')

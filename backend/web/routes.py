@@ -1,6 +1,10 @@
 from backend.dependencies import get_current_user, require_roles
 from backend.models import Role, RoomType, RatePlan
 from sqlalchemy import select
+from datetime import date, timedelta
+from core.hotel_time import hotel_today
+from backend.services.calendar_service import room_calendar
+from fastapi import Query
 from backend.services.auth_service import authenticate
 from backend.services.booking_detail_service import booking_detail, active_service_options
 from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, reports_page_context, rooms_page_context, services_page_context, users_page_context
@@ -64,6 +68,14 @@ def rates_page(request: Request, user=Depends(require_roles(Role.admin)), db: Se
     types = db.scalars(select(RoomType).order_by(RoomType.name)).all()
     plans = db.scalars(select(RatePlan).order_by(RatePlan.start_date)).all()
     return templates.TemplateResponse('pages/rates.html', page_context(request, user, 'rates', room_types=types, plans=plans, type_names={t.id:t.name for t in types}))
+
+
+@router.get('/calendar', response_class=HTMLResponse)
+def calendar_page(request: Request, start: date | None = None, end: date | None = None, guests: int = Query(1,ge=1,le=20), type_id: int | None = None, floor: int | None = None, page: int = Query(1,ge=1), user=Depends(get_current_user), db: Session = Depends(get_db)):
+    start=start or hotel_today()
+    end=end or start+timedelta(days=14)
+    calendar=room_calendar(db,start,end,guests,type_id,floor,page)
+    return templates.TemplateResponse('pages/calendar.html',page_context(request,user,'calendar',calendar=calendar,types=db.scalars(select(RoomType).order_by(RoomType.name)).all(),guests=guests,type_id=type_id,floor=floor))
 
 
 @router.get("/bookings", response_class=HTMLResponse)
