@@ -184,3 +184,8 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - pg_dump/pg_restore chạy thật trên hai database QA mới ở localhost. Phát hiện đường dẫn Windows tiếng Việt và public schema có sẵn; sửa dùng binary stream và TOC bỏ riêng CREATE SCHEMA public. Restore nguyên tử, không --clean, từ chối đích đã có bảng. Đối chiếu 21 booking/12 phòng, tổng tiền, 23 sequence, revision 0022; bằng chứng backup-restore-evidence.json.
 - SQLite local được backup trước nâng 0016→0022; số dòng bảng cũ và từng giá trị hóa đơn giữ nguyên, integrity/FK đạt. Không chuyển dữ liệu thật lên Render.
 - Workflow CI được bổ sung cho PostgreSQL/SQLite và Docker. Không coi việc tạo workflow là kết quả CI đã đạt. Rollback code chỉ dùng artifact tương thích migration; không tự downgrade dữ liệu vận hành.
+
+## R02 — Phát hành cloud riêng
+- Prompt: “Dùng workspace Render đã chọn, PostgreSQL Free riêng và secret môi trường; kiểm tra CI/Linux trước phát hành, không tác động nhatot.”
+- Connector không cung cấp URL DB nên dùng Dashboard đã đăng nhập để lấy URL nội bộ vào file ignored, không đưa secret vào chat. External DB vẫn chặn truy cập ngoài.
+- CI đầu Docker build đạt, pytest entrypoint Linux lỗi import core.database. Sửa gọi python -m pytest, ghim Ubuntu/Python và SHA các release action chính thức. Các test không bị bỏ để làm CI xanh.
