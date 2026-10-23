@@ -3,7 +3,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from backend.models import Booking, BookingNight, HotelService, Invoice, ServiceUsage, User
+from backend.models import Booking, BookingNight, HotelService, Invoice, ServiceUsage, User, RoomStay, Room, BookingChange
 from .rates_service import booked_room_amount
 
 
@@ -25,7 +25,9 @@ def booking_detail(db, booking_id, role):
     discount = invoice.discount if invoice else Decimal(0)
     estimated = room_total + service_total - discount
     nights = db.scalars(select(BookingNight).where(BookingNight.booking_id == booking_id).order_by(BookingNight.stay_date)).all()
-    actors = {h.changed_by for h in booking.status_history if h.changed_by}
+    changes = db.scalars(select(BookingChange).where(BookingChange.booking_id == booking_id).order_by(BookingChange.id)).all()
+    actors = {c.changed_by for c in changes if c.changed_by}
+    actors.update(h.changed_by for h in booking.status_history if h.changed_by)
     if invoice:
         actors.update(p.paid_by for p in invoice.payments if p.paid_by)
     names = dict(db.execute(select(User.id, User.full_name).where(User.id.in_(actors))).all()) if actors else {}
@@ -52,6 +54,9 @@ def booking_detail(db, booking_id, role):
         'invoice':{'id':invoice.id, 'room_amount':amount(invoice.room_amount), 'service_amount':amount(invoice.service_amount), 'discount':amount(invoice.discount),
                    'total':amount(invoice.total), 'paid_amount':amount(invoice.paid_amount), 'remaining':amount(invoice.total-invoice.paid_amount), 'status':invoice.payment_status.value,
                    'finalized':booking.status.value == 'checked_out', 'ledger_gap':amount(ledger_gap)} if invoice else None,
+        'stays':[{'room':number,'check_in':str(stay.check_in),'check_out':str(stay.check_out)} for stay,number in db.execute(select(RoomStay,Room.number).join(Room,Room.id==RoomStay.room_id).where(RoomStay.booking_id==booking_id).order_by(RoomStay.check_in))],
+        'changes':[{'reason':c.reason,'at':c.changed_at.isoformat(),'actor':names.get(c.changed_by,'Hệ thống'),'before':c.before_data,'after':c.after_data} for c in changes],
+        'can_change':frontdesk and booking.status.value in ('confirmed','checked_in'),
         'history':history, 'payments':payments, 'can_view_payments':finance,
         'actions':{'check_in':can_check_in, 'cancel':frontdesk and booking.status.value == 'confirmed' and invoice is None,
                    'check_out':frontdesk and booking.status.value == 'checked_in', 'add_service':frontdesk and booking.status.value == 'checked_in',

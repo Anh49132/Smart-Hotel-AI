@@ -122,6 +122,27 @@ class BookingNight(Base):
     source: Mapped[str] = mapped_column(String(120))
 
 
+class RoomStay(Base):
+    __tablename__ = 'room_stays'
+    __table_args__ = (CheckConstraint('check_out > check_in', name='ck_stay_dates'), Index('ix_stay_overlap', 'room_id', 'check_in', 'check_out'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey('bookings.id'), index=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey('rooms.id'))
+    check_in: Mapped[date] = mapped_column(Date)
+    check_out: Mapped[date] = mapped_column(Date)
+
+
+class BookingChange(Base):
+    __tablename__ = 'booking_changes'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey('bookings.id'), index=True)
+    changed_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    reason: Mapped[str] = mapped_column(String(500))
+    before_data: Mapped[str] = mapped_column(Text)
+    after_data: Mapped[str] = mapped_column(Text)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class HotelService(Base):
     __tablename__ = "services"
     __table_args__ = (CheckConstraint("price > 0", name="ck_service_price"),)

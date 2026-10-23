@@ -67,6 +67,8 @@ def invoice(booking_id: int, discount: Decimal | None, db: Session):
             raise HTTPException(404, "Không tìm thấy đặt phòng")
         lock_room(db, room_id)
         booking = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update().execution_options(populate_existing=True))
+        if booking.room_id != room_id:
+            raise HTTPException(409, 'Đặt phòng vừa đổi phòng, hãy tải lại và thử lại')
         return calculate_invoice(db, booking, discount)
 
 

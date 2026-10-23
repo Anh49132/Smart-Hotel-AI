@@ -1,5 +1,7 @@
 from backend.dependencies import get_current_user, require_roles
 from backend.services.booking_detail_service import booking_detail
+from backend.services.booking_changes_service import change_booking
+from backend.schemas.inputs import BookingChangeIn
 from backend.models import Booking, BookingStatusHistory, Role
 from backend.schemas import BookingIn
 from backend.services.booking_service import booking_action as booking_action_service, bookings as bookings_service, create_booking
@@ -10,6 +12,16 @@ from sqlalchemy import select
 from fastapi import HTTPException
 
 router = APIRouter()
+
+
+@router.post('/booking-changes/{booking_id}/preview')
+def preview_change(booking_id: int, data: BookingChangeIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
+    return change_booking(db, booking_id, data, user.id, preview=True)
+
+
+@router.put('/bookings/{booking_id}')
+def apply_change(booking_id: int, data: BookingChangeIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
+    return change_booking(db, booking_id, data, user.id)
 
 @router.get("/bookings")
 def bookings(db: Session = Depends(get_db)):

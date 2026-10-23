@@ -1,4 +1,4 @@
-from backend.models import Booking, BookingNight, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus
+from backend.models import Booking, BookingNight, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus, RoomStay
 from .rates_service import lock_room_type, quote
 from backend.schemas import BookingIn
 from backend.services.invoice_service import calculate_invoice
@@ -13,15 +13,9 @@ from .transactions import lock_room, write_transaction
 ACTIVE_BOOKING_STATUSES = (BookingStatus.confirmed, BookingStatus.checked_in)
 
 def room_is_available(db: Session, room_id: int, check_in: date, check_out: date, exclude_id: Optional[int] = None) -> bool:
-    query = select(Booking.id).where(
-        Booking.room_id == room_id,
-        Booking.status.in_(ACTIVE_BOOKING_STATUSES),
-        Booking.check_in < check_out,
-        check_in < Booking.check_out,
-    )
-    if exclude_id:
-        query = query.where(Booking.id != exclude_id)
-    return db.scalar(query.limit(1)) is None
+    from .inventory_service import room_available
+    return room_available(db, room_id, check_in, check_out, exclude_id)
+
 
 def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) -> Booking:
     with write_transaction(db):
@@ -39,6 +33,7 @@ def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) ->
         booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", booked_nightly_rate=prices['average'], booked_rate_source='nightly_snapshot', **data.model_dump())
         db.add(booking)
         db.flush()
+        db.add(RoomStay(booking_id=booking.id, room_id=room.id, check_in=data.check_in, check_out=data.check_out))
         db.add_all([BookingNight(booking_id=booking.id, **night) for night in prices['nights']])
         db.add(BookingStatusHistory(booking_id=booking.id, to_status=BookingStatus.confirmed, changed_by=actor_id))
         db.commit()
@@ -59,6 +54,8 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
             raise HTTPException(404, 'Không tìm thấy đặt phòng')
         room = lock_room(db, room_id)
         booking = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update().execution_options(populate_existing=True))
+        if booking.room_id != room_id:
+            raise HTTPException(409, 'Đặt phòng vừa đổi phòng, hãy tải lại và thử lại')
         expected, target = transitions[action]
         if booking.status != expected:
             raise HTTPException(409, 'Trạng thái đặt phòng không phù hợp')
