@@ -29,3 +29,5 @@ class InvoiceOut(BaseModel):
     paid_amount:Decimal
     payment_status:str
     issued_at:datetime
+    effective_total:Decimal|None=None
+    balance_due:Decimal|None=None

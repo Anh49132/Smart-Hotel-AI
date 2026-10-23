@@ -2,7 +2,7 @@
 from decimal import Decimal
 from sqlalchemy import select
 from fastapi import HTTPException
-from backend.models import Booking,BookingNight,ServiceUsage,BookingSurcharge,MoneyEntry,RoomStay,Room,User
+from backend.models import Booking,BookingNight,ServiceUsage,BookingSurcharge,MoneyEntry,RoomStay,Room,User,FinancialAdjustment
 from .rates_service import booked_room_amount
 
 
@@ -31,6 +31,8 @@ def folio(db,booking_id):
             actual=sum((x['amount'] for x in lines if x['category']==category),Decimal(0))
             if expected!=actual:lines.append({'category':'reconciliation','description':f'Đối chiếu {category} với hóa đơn đã lập (legacy/chưa cập nhật)','amount':expected-actual})
         if invoice.discount:lines.append({'category':'discount','description':'Giảm giá trên hóa đơn','amount':-invoice.discount})
+    adjustment=db.scalar(select(FinancialAdjustment).where(FinancialAdjustment.booking_id==booking_id))
+    if adjustment:lines.append({'category':'adjustment','description':f'Điều chỉnh {adjustment.target_status} · phí giữ {adjustment.percent}% · {adjustment.reason}','amount':adjustment.amount})
     entries=db.scalars(select(MoneyEntry).where(MoneyEntry.booking_id==booking_id).order_by(MoneyEntry.occurred_at,MoneyEntry.id)).all()
     ids={e.actor_id for e in entries if e.actor_id}
     actors=dict(db.execute(select(User.id,User.full_name).where(User.id.in_(ids))).all()) if ids else {}
@@ -40,7 +42,7 @@ def folio(db,booking_id):
     return {'booking_id':b.id,'code':b.code,'customer_name':b.customer.full_name,'status':b.status.value,
             'invoice_id':invoice.id if invoice else None,'finalized':bool(invoice and b.status.value=='checked_out'),
             'lines':[dict(x,amount=text_amount(x['amount'])) for x in lines],
-            'transactions':[{'id':e.id,'kind':e.kind,'amount':text_amount(e.amount),'method':e.method,'reference':e.reference,'actor':actors.get(e.actor_id,'Chưa ghi người thu'),'at':e.occurred_at.isoformat()} for e in entries],
+            'transactions':[{'id':e.id,'kind':e.kind,'amount':text_amount(e.amount),'method':e.method,'reference':e.reference,'reason':e.reason,'actor':actors.get(e.actor_id,'Chưa ghi người thu'),'at':e.occurred_at.isoformat()} for e in entries],
             'total':text_amount(charge),'received':text_amount(received),'refunded':text_amount(refunded),'net_received':text_amount(received-refunded),'balance':text_amount(charge-received+refunded),
             'legacy_gap':text_amount(invoice.paid_amount-received+refunded) if invoice else '0.00'}
 
@@ -51,4 +53,4 @@ def receipt_document(db,entry_id,user):
     if user.role.value not in ('admin','accountant') and not (entry.actor_id==user.id and entry.kind=='deposit'):
         raise HTTPException(403,'Chỉ xem phiếu thu cọc do bạn ghi nhận')
     b=db.get(Booking,entry.booking_id)
-    return {'id':entry.id,'booking_id':b.id,'code':b.code,'customer_name':b.customer.full_name,'kind':entry.kind,'amount':text_amount(entry.amount),'method':entry.method,'reference':entry.reference,'at':entry.occurred_at.isoformat(),'actor':db.get(User,entry.actor_id).full_name if entry.actor_id else 'Chưa ghi người thu'}
+    return {'id':entry.id,'booking_id':b.id,'code':b.code,'customer_name':b.customer.full_name,'kind':entry.kind,'amount':text_amount(entry.amount),'method':entry.method,'reference':entry.reference,'reason':entry.reason,'at':entry.occurred_at.isoformat(),'actor':db.get(User,entry.actor_id).full_name if entry.actor_id else 'Chưa ghi người thu'}

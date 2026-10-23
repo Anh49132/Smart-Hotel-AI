@@ -1,3 +1,4 @@
+from .money_service import charge_total
 from backend.models import Booking, BookingStatus, Customer, HotelService, Invoice, Room, RoomStatus, RoomType, User
 from calendar import monthrange
 from datetime import date, datetime
@@ -36,6 +37,10 @@ def users_page_context(db: Session):
 
 def invoices_page_context(db: Session):
     invoices = db.scalars(select(Invoice).options(selectinload(Invoice.booking).selectinload(Booking.customer), selectinload(Invoice.booking).selectinload(Booking.room)).order_by(Invoice.issued_at.desc())).all()
+    for inv in invoices:
+        inv.effective_total=charge_total(db,inv.booking)
+        inv.balance_due=inv.effective_total-inv.paid_amount
+        inv.adjustment_amount=inv.effective_total-inv.total
     return {'invoices': invoices}
 
 def ai_page_context(db: Session):

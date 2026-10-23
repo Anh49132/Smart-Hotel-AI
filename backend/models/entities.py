@@ -255,6 +255,7 @@ class MoneyEntry(Base):
     kind: Mapped[str]=mapped_column(String(20))
     method: Mapped[str]=mapped_column(String(20))
     reference: Mapped[str]=mapped_column(String(100),default='')
+    reason: Mapped[str]=mapped_column(String(500),server_default='')
     request_key: Mapped[str]=mapped_column(String(64))
     actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'),nullable=True)
     occurred_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
@@ -275,13 +276,31 @@ class AIResult(Base):
 
 class HotelPolicy(Base):
     __tablename__='hotel_policy'
-    __table_args__=(CheckConstraint('id=1',name='ck_policy_singleton'),CheckConstraint('check_in_hour BETWEEN 0 AND 23 AND check_out_hour BETWEEN 0 AND 23 AND no_show_hour BETWEEN 0 AND 23',name='ck_policy_hours'),CheckConstraint('early_fee >= 0 AND late_fee >= 0',name='ck_policy_fees'))
+    __table_args__=(CheckConstraint('id=1',name='ck_policy_singleton'),CheckConstraint('check_in_hour BETWEEN 0 AND 23 AND check_out_hour BETWEEN 0 AND 23 AND no_show_hour BETWEEN 0 AND 23',name='ck_policy_hours'),CheckConstraint('early_fee >= 0 AND late_fee >= 0',name='ck_policy_fees'),CheckConstraint('cancellation_percent BETWEEN 0 AND 100 AND no_show_percent BETWEEN 0 AND 100',name='ck_policy_cancellation'))
     id: Mapped[int]=mapped_column(primary_key=True)
     check_in_hour: Mapped[int]=mapped_column(default=14)
     check_out_hour: Mapped[int]=mapped_column(default=12)
     no_show_hour: Mapped[int]=mapped_column(default=23)
     early_fee: Mapped[Decimal]=mapped_column(Numeric(12,2),default=0)
     late_fee: Mapped[Decimal]=mapped_column(Numeric(12,2),default=0)
+    cancellation_percent: Mapped[Decimal]=mapped_column(Numeric(5,2),server_default='0')
+    no_show_percent: Mapped[Decimal]=mapped_column(Numeric(5,2),server_default='0')
+
+
+class FinancialAdjustment(Base):
+    __tablename__='financial_adjustments'
+    __table_args__=(CheckConstraint("target_status IN ('cancelled','no_show')",name='ck_adjustment_status'),CheckConstraint('percent >= 0 AND percent <= 100 AND fee_amount >= 0 AND fee_amount <= original_total AND amount = fee_amount - original_total',name='ck_adjustment_math'))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    booking_id: Mapped[int]=mapped_column(ForeignKey('bookings.id'),unique=True)
+    target_status: Mapped[str]=mapped_column(String(20))
+    original_total: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    fee_amount: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    percent: Mapped[Decimal]=mapped_column(Numeric(5,2))
+    amount: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    reason: Mapped[str]=mapped_column(String(500))
+    request_key: Mapped[str]=mapped_column(String(64))
+    actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
 
 
 class BookingSurcharge(Base):

@@ -13,8 +13,8 @@ def money(value):
     return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def calculate_invoice(db: Session, booking: Booking, discount: Decimal | None = None, commit: bool = True) -> Invoice:
-    if booking.status in (BookingStatus.cancelled, BookingStatus.no_show):
+def calculate_invoice(db: Session, booking: Booking, discount: Decimal | None = None, commit: bool = True, allow_closed_booking:bool=False) -> Invoice:
+    if booking.status in (BookingStatus.cancelled, BookingStatus.no_show) and not allow_closed_booking:
         raise HTTPException(409, "Không lập hóa đơn lưu trú cho đặt phòng đã hủy")
     if booking.booked_nightly_rate is None:
         raise HTTPException(409, "Đặt phòng chưa có giá đã chốt; hãy chạy migration")

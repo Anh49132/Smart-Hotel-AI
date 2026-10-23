@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import select,func,case
-from backend.models import Booking,Invoice,MoneyEntry,Payment,PaymentStatus,ServiceUsage,BookingSurcharge
+from backend.models import Booking,Invoice,MoneyEntry,Payment,PaymentStatus,ServiceUsage,BookingSurcharge,FinancialAdjustment
 from .transactions import lock_room,write_transaction
 from .rates_service import booked_room_amount
 
@@ -23,7 +23,9 @@ def net_received(db,booking_id):
 
 def charge_total(db,booking):
     invoice=db.scalar(select(Invoice).where(Invoice.booking_id==booking.id))
-    if invoice:return invoice.total
+    if invoice:
+        adjustment=db.scalar(select(func.coalesce(func.sum(FinancialAdjustment.amount),0)).where(FinancialAdjustment.booking_id==booking.id))
+        return invoice.total+adjustment
     services=db.scalar(select(func.coalesce(func.sum(ServiceUsage.quantity*ServiceUsage.unit_price),0)).where(ServiceUsage.booking_id==booking.id))
     fees=db.scalar(select(func.coalesce(func.sum(BookingSurcharge.amount),0)).where(BookingSurcharge.booking_id==booking.id))
     return booked_room_amount(db,booking)+services+fees
@@ -53,7 +55,7 @@ def receipt(db,booking_id,data,actor_id=None):
             result={'id':existing.id,'replayed':True}
             db.rollback()
             return result
-        if booking.status.value in ('cancelled','no_show'):
+        if booking.status.value in ('cancelled','no_show') and not (data.kind=='payment' and db.scalar(select(FinancialAdjustment.id).where(FinancialAdjustment.booking_id==booking_id))):
             raise HTTPException(409,'Không thu tiền lưu trú cho lịch đã hủy/không đến')
         if data.kind=='deposit' and booking.status.value!='confirmed':
             raise HTTPException(409,'Chỉ thu cọc trước khi nhận phòng')
@@ -71,6 +73,6 @@ def receipt(db,booking_id,data,actor_id=None):
         db.add(entry)
         if invoice:
             invoice.paid_amount=net+data.amount
-            invoice.payment_status=PaymentStatus.paid if invoice.paid_amount==total else PaymentStatus.partial
+            invoice.payment_status=PaymentStatus.paid if invoice.paid_amount>=total else PaymentStatus.partial
         db.commit();db.refresh(entry)
         return {'id':entry.id,'replayed':False}

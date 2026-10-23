@@ -3,7 +3,7 @@
 {% block title %}{{detail.code}} · Chi tiết đặt phòng{% endblock %}
 {% block content %}
 <div class="page-head"><div><a href="/bookings" class="text-decoration-none">← Danh sách đặt phòng</a><h1 class="mt-2">{{detail.code}}</h1><p>{{detail.customer.name}} · Phòng {{detail.room.number}} · <span class="status {{detail.status}}">{{status_label(detail.status)}}</span></p></div>
-<div class="d-flex gap-2 flex-wrap">{% if user.role.value in ['admin','accountant'] %}<a class="btn btn-outline-primary" href="/bookings/{{detail.id}}/folio">Bảng kê / In</a>{% endif %}
+<div class="d-flex gap-2 flex-wrap">{% if user.role.value in ['admin','accountant'] %}<a class="btn btn-outline-primary" href="/bookings/{{detail.id}}/folio">Bảng kê / In</a><a class="btn btn-outline-danger" href="/bookings/{{detail.id}}/finance">Hủy / Hoàn tiền</a>{% endif %}
 {% if detail.actions.check_in %}<button class="btn btn-primary detail-action" data-action="check-in">Nhận phòng</button>{% endif %}
 {% if detail.actions.check_out %}<button class="btn btn-primary detail-action" data-action="check-out">Trả phòng & lập hóa đơn</button>{% endif %}
 {% if detail.actions.cancel %}<button class="btn btn-outline-danger detail-action" data-action="cancel">Hủy đặt phòng</button>{% endif %}
