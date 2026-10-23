@@ -40,6 +40,8 @@ def db(monkeypatch):
     fixed_now=lambda:datetime(2030,1,10,15,tzinfo=timezone(timedelta(hours=7)))
     monkeypatch.setattr('core.hotel_time.hotel_now',fixed_now)
     monkeypatch.setattr('backend.services.frontdesk_service.hotel_now',fixed_now)
+    # Recreating PostgreSQL enums changes their OIDs; discard pooled prepared plans.
+    engine.dispose()
     Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
     with TestingSession() as session:
         session.add_all([User(username="admin", full_name="Admin", password_hash=hash_password("Admin@123"), role=Role.admin), RoomType(id=1,name="Deluxe",capacity=2,nightly_rate=900000,amenities="Bồn tắm"), Room(id=1,number="302",floor=3,room_type_id=1), Customer(id=1,full_name="Nguyễn An",phone="0900000000"), HotelService(id=1,name="Giặt là",unit="kg",price=50000)]); session.commit()

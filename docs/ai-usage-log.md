@@ -139,3 +139,12 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Triển khai: khoảng ngày nửa mở, UTC+7 cho giao dịch; hóa đơn theo ngày phát hành, điều chỉnh theo ngày quyết toán, thu/hoàn theo ngày giao dịch. Không cộng Payment mirror; legacy_opening chưa rõ ngày thu không tính vào dòng tiền.
 - Công suất theo lịch (gồm confirmed), không gán nhãn đêm thực ở; trừ hợp các room-day khóa bảo trì, cảnh báo lịch chồng khóa; công nợ/cọc chưa phân bổ là ảnh chụp hiện tại, không giả dữ liệu lịch sử.
 - Kiểm chứng: PostgreSQL kiểm thử qua tháng, chặng đổi phòng, loại no-show, bảo trì trùng, ranh UTC+7, hoàn tiền, điều chỉnh khác ngày hóa đơn, CSV không chứa thông tin khách.
+
+
+## C18 — Gemini chọn phòng bằng JSON có kiểm chứng
+- Prompt: “Model chỉ xếp hạng ID trong inventory đã lọc; kiểm tra schema, ID, giá, tiện ích và truy vấn lại sau lúc chờ model. Không để văn bản model tự tạo giá/phòng.”
+- Tham chiếu API chính thức: https://ai.google.dev/api/generate-content#v1beta.GenerationConfig (responseMimeType/responseJsonSchema).
+- Thay đổi: Pydantic giới hạn ba lựa chọn, tổng tiền khớp Decimal, mã lý do trong tập cho phép; backend dựng câu trả lời/giá. Tiện ích lọc đủ các thuật ngữ; không đáp ứng thì không gọi AI. Không gửi hồ sơ khách.
+- Kiểm chứng: mock transport/schema, bịa phòng/giá, phòng trùng, sai JSON, ngân sách thấp, ngày sai, chèn lệnh/tiện ích không có, bảo trì và booking phát sinh khi model xử lý. Không gọi model thật.
+- Review tích hợp: chặn hủy/no-show nhanh bỏ qua phí; kiểm tra quyền hoàn/chốt ca khác người; chuyển khoản không thành tồn két. Fixture tái tạo schema PostgreSQL hủy pool để bỏ prepared plan cũ sau khi enum OID đổi; không sửa cấu hình production để che lỗi test.
+- Browser QA DB giả: bảng kê khớp tổng/cọc, preview hủy, chốt ca 600.000 tiền mặt lệch 0, báo cáo phân biệt 1.800.000 hóa đơn và 500.000 thu. IAB chưa xác minh được preview in; không coi là test máy in/PDF xuất thực tế.

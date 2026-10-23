@@ -134,11 +134,11 @@ class ReceiptIn(PaymentIn):
 
 
 class RoomAdviceIn(BaseModel):
-    guests: int = Field(ge=1)
-    budget: Decimal = Field(gt=0)
+    guests: int = Field(ge=1,le=20)
+    budget: Decimal = Field(gt=0,le=9999999999,max_digits=12,decimal_places=2)
     check_in: date
     check_out: date
-    amenities: str = ""
+    amenities: str = Field(default='',max_length=500)
 
     @model_validator(mode='after')
     def stay_dates(self):
