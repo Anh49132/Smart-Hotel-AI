@@ -13,7 +13,7 @@ from backend.services.calendar_service import room_calendar
 from fastapi import Query
 from backend.services.auth_service import authenticate
 from backend.services.booking_detail_service import booking_detail, active_service_options
-from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, reports_page_context, rooms_page_context, services_page_context, users_page_context
+from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, rooms_page_context, services_page_context, users_page_context
 from core.config import FRONTEND_DIR, settings
 from core.database import get_db
 from core.security import set_session_cookie
@@ -159,8 +159,11 @@ def ai_page(request: Request, user=Depends(get_current_user), db: Session = Depe
 
 
 @router.get("/reports", response_class=HTMLResponse)
-def reports_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return templates.TemplateResponse('pages/reports.html', page_context(request, user, 'reports', **reports_page_context(db)))
+def reports_page(request:Request,start:date|None=None,end:date|None=None,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
+    from backend.services.reports_service import operating_report
+    start=start or hotel_today().replace(day=1)
+    end=end or hotel_today()+timedelta(days=1)
+    return templates.TemplateResponse('pages/reports.html',page_context(request,user,'reports',report=operating_report(db,start,end)))
 
 
 @router.get('/shifts',response_class=HTMLResponse)

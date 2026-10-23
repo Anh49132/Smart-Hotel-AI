@@ -132,3 +132,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Triển khai: chỉ một ca mở mỗi nhân viên (ràng buộc DB); khóa ca khi ghi tiền/chốt; chuyển khoản tách khỏi két, hoàn tiền mặt không vượt tồn két. Chốt lưu số kiểm đếm, chênh lệch, người nhận, ghi chú và ảnh chụp số liệu/công việc tồn.
 - Chỉnh sửa/kiểm chứng: replay giao dịch cũ sau đóng ca vẫn trả kết quả cũ; giao dịch mới bị chặn. Dữ liệu thu cũ để shift_id trống vì không có bằng chứng ca thực tế. Fixture kiểm thử mở ca rõ ràng; ứng dụng không tự mở ca.
 - Kiểm thử: PostgreSQL cho thu/hoàn/cọc, migration round-trip, chốt ca đồng thời và bảng kê.
+
+
+## C17 — Báo cáo vận hành và đối soát
+- Prompt: “Tách doanh thu hóa đơn khỏi dòng tiền; tính công suất theo room-night/chặng đổi phòng và lịch bảo trì; công bố mốc thời gian.”
+- Triển khai: khoảng ngày nửa mở, UTC+7 cho giao dịch; hóa đơn theo ngày phát hành, điều chỉnh theo ngày quyết toán, thu/hoàn theo ngày giao dịch. Không cộng Payment mirror; legacy_opening chưa rõ ngày thu không tính vào dòng tiền.
+- Công suất theo lịch (gồm confirmed), không gán nhãn đêm thực ở; trừ hợp các room-day khóa bảo trì, cảnh báo lịch chồng khóa; công nợ/cọc chưa phân bổ là ảnh chụp hiện tại, không giả dữ liệu lịch sử.
+- Kiểm chứng: PostgreSQL kiểm thử qua tháng, chặng đổi phòng, loại no-show, bảo trì trùng, ranh UTC+7, hoàn tiền, điều chỉnh khác ngày hóa đơn, CSV không chứa thông tin khách.
