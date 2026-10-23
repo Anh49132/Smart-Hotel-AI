@@ -168,3 +168,12 @@ Database local SQLite đã sao lưu `data/hotel.before-first-five.20261023-11380
 Theo yêu cầu tiếp theo, thực hiện C05 (Anh49132) rồi C06 (khanhhoang1012006-svg) trên hai nhánh riêng từ dev; R02 vẫn đang chờ triển khai. C05 đã push bằng danh tính GitHub Anh49132 được kiểm chứng qua API /user. C06 sử dụng bước đăng nhập riêng của Khanh trước khi push, không suy ra người push từ tác giả commit. Giữ merge local vào dev, chưa coi là review chéo GitHub.
 
 Nghiệm thu mã C05+C06: PostgreSQL 100 test đạt; SQLite 98 đạt/2 bỏ qua PostgreSQL; migration local giữ số dòng và tổng tiền cũ. Kiểm tra tương tác trình duyệt và deploy live vẫn thuộc công việc chưa hoàn tất.
+
+
+## Đợt sáu commit C07–C12 — 23/10/2026
+
+- Anh49132: C07 booking-changes, C09 housekeeping, C11 frontdesk.
+- khanhhoang1012006-svg: C08 room-calendar, C10 maintenance, C12 guest-history.
+- Mỗi phần một nhánh feature từ dev, triển khai theo phụ thuộc rồi merge local có commit riêng. Hai tài khoản đã được lưu trong Git Credential Manager; chọn credential.username cho từng push và kiểm chứng tài khoản qua API /user, không đổi tác giả sau khi push hoặc giả lịch sử review.
+- PostgreSQL 117 test đạt; SQLite 115 đạt/2 bỏ qua PostgreSQL. Browser QA dùng dữ liệu giả riêng để thử lịch→đổi phòng→dọn/kiểm tra và quyền housekeeping, khách và bàn lễ tân; đây chưa là kiểm thử UX đa thiết bị đầy đủ.
+- Database local nâng 0007→0012 sau backup, số dòng bảng cũ/tổng tiền không đổi. main vẫn là mốc phát hành trước, chưa triển khai R02/Render. Báo cáo đánh giá cũ vẫn là tài liệu đầu vào theo ngày, không tự coi là chứng nhận đủ toàn bộ tiêu chí.

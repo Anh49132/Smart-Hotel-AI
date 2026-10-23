@@ -2,6 +2,7 @@ from backend.dependencies import get_current_user, require_roles
 from backend.models import Role, RoomType, RatePlan, User, Room
 from backend.services.maintenance_service import blocks
 from backend.services.frontdesk_service import desk_rows
+from backend.services.customers_service import customers as customer_search,customer_detail
 from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
@@ -11,7 +12,7 @@ from fastapi import Query
 from backend.services.auth_service import authenticate
 from backend.services.booking_detail_service import booking_detail, active_service_options
 from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, reports_page_context, rooms_page_context, services_page_context, users_page_context
-from core.config import FRONTEND_DIR
+from core.config import FRONTEND_DIR, settings
 from core.database import get_db
 from core.security import set_session_cookie
 from core.login_limiter import login_limiter
@@ -30,14 +31,14 @@ STATUS_LABELS = {
 templates.env.globals["status_label"] = lambda value: STATUS_LABELS.get(getattr(value, "value", value), getattr(value, "value", value))
 
 @router.get("/login", response_class=HTMLResponse)
-def login_page(request: Request): return templates.TemplateResponse("pages/login.html", {"request": request})
+def login_page(request: Request): return templates.TemplateResponse("pages/login.html", {"request": request,"show_demo":settings.app_env=="development" and settings.seed_demo_data})
 
 
 @router.post("/login")
 def login(request: Request, username: str = Form(), password: str = Form(), db: Session = Depends(get_db)):
     login_limiter.check(request.client.host if request.client else 'unknown', username)
     user = authenticate(db, username, password)
-    if not user: return templates.TemplateResponse("pages/login.html", {"request": request, "error": "Sai tên đăng nhập hoặc mật khẩu"}, status_code=401)
+    if not user: return templates.TemplateResponse("pages/login.html", {"request": request,"show_demo":settings.app_env=="development" and settings.seed_demo_data, "error": "Sai tên đăng nhập hoặc mật khẩu"}, status_code=401)
     response = RedirectResponse('/account' if user.must_change_password else '/housekeeping' if user.role==Role.housekeeping else '/', 303)
     set_session_cookie(response, user)
     return response
@@ -103,8 +104,14 @@ def bookings_page(request: Request, user=Depends(get_current_user), db: Session 
 
 
 @router.get("/customers", response_class=HTMLResponse)
-def customers_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return templates.TemplateResponse('pages/customers.html', page_context(request, user, 'customers', **customers_page_context(db)))
+def customers_page(request: Request,q:str=Query('',max_length=100),page:int=Query(1,ge=1),user=Depends(get_current_user), db: Session = Depends(get_db)):
+    result=customer_search(db,q,page,user.role in (Role.admin,Role.receptionist))
+    return templates.TemplateResponse('pages/customers.html', page_context(request, user, 'customers', result=result))
+
+
+@router.get('/customers/{customer_id}',response_class=HTMLResponse)
+def customer_detail_page(customer_id:int,request:Request,page:int=Query(1,ge=1),user=Depends(get_current_user),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/customer_detail.html',page_context(request,user,'customers',guest=customer_detail(db,customer_id,user.role in (Role.admin,Role.receptionist),page)))
 
 
 @router.get('/bookings/{booking_id}', response_class=HTMLResponse)

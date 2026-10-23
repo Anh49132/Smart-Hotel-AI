@@ -2,6 +2,7 @@ from backend.dependencies import get_current_user, require_roles
 from backend.services.booking_detail_service import booking_detail
 from backend.services.booking_changes_service import change_booking
 from backend.schemas.inputs import BookingChangeIn
+from backend.schemas.outputs import BookingOut
 from backend.models import Booking, BookingStatusHistory, Role
 from backend.schemas import BookingIn
 from backend.services.booking_service import booking_action as booking_action_service, bookings as bookings_service, create_booking
@@ -23,12 +24,12 @@ def preview_change(booking_id: int, data: BookingChangeIn, db: Session = Depends
 def apply_change(booking_id: int, data: BookingChangeIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
     return change_booking(db, booking_id, data, user.id)
 
-@router.get("/bookings")
+@router.get("/bookings",response_model=list[BookingOut])
 def bookings(db: Session = Depends(get_db)):
     return bookings_service(db=db)
 
 
-@router.post("/bookings")
+@router.post("/bookings",response_model=BookingOut)
 def add_booking(data: BookingIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
     return create_booking(db, data, user.id)
 

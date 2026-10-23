@@ -42,7 +42,12 @@ def db(monkeypatch):
     monkeypatch.setattr('backend.services.frontdesk_service.hotel_now',fixed_now)
     Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
     with TestingSession() as session:
-        session.add_all([User(username="admin", full_name="Admin", password_hash=hash_password("Admin@123"), role=Role.admin), RoomType(id=1,name="Deluxe",capacity=2,nightly_rate=900000,amenities="Bồn tắm"), Room(id=1,number="302",floor=3,room_type_id=1), Customer(id=1,full_name="Nguyễn An",phone="0900000000"), HotelService(id=1,name="Giặt là",unit="kg",price=50000)]); session.commit(); yield session
+        session.add_all([User(username="admin", full_name="Admin", password_hash=hash_password("Admin@123"), role=Role.admin), RoomType(id=1,name="Deluxe",capacity=2,nightly_rate=900000,amenities="Bồn tắm"), Room(id=1,number="302",floor=3,room_type_id=1), Customer(id=1,full_name="Nguyễn An",phone="0900000000"), HotelService(id=1,name="Giặt là",unit="kg",price=50000)]); session.commit()
+        if engine.dialect.name == 'postgresql':
+            for table in ('room_types','rooms','customers','services'):
+                session.execute(text(f"SELECT setval(pg_get_serial_sequence('{table}','id'), COALESCE((SELECT MAX(id) FROM {table}),1), true)"))
+            session.commit()
+        yield session
 
 
 @pytest.fixture()

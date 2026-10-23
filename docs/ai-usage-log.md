@@ -92,3 +92,13 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - No-show là trạng thái riêng, chỉ sau giờ cấu hình của ngày đến, không đổi tình trạng vật lý phòng. Có hóa đơn phải xử lý tài chính trước khi no-show. Các báo cáo không tính no-show vào công suất.
 - Phụ thu cố định một lần/lưu trú cho từng loại nhận sớm/trả muộn; nhân viên xác nhận đúng mức đang cấu hình, lưu snapshot và người xác nhận. Không tự cộng phí khi xem. Hóa đơn có cột phụ thu riêng, constraint tổng/giảm giá được nâng cấp giữ nguyên tổng cũ.
 - Test thời điểm sát giờ no-show, trước ngày nhận bị chặn, phí không tự áp dụng/không lặp/giá đổi phải xác nhận lại, checkout và migration. Đồng hồ test được cố định 2030-01-10 thay vì phụ thuộc ngày chạy.
+
+
+## C12 — Lịch sử khách và riêng tư
+
+- AI hỗ trợ tìm/phân trang khách và lịch sử, đếm checked_out thay vì tất cả booking, ngày hoàn tất ưu tiên actual checkout theo Asia/Bangkok; chuyển phòng không làm tăng lượt. Preferences chỉ cho admin/lễ tân và không gửi AI.
+- Che giấy tờ trong API/HTML mặc định, endpoint đối chiếu riêng kiểm tra quyền và no-store; sửa thông tin trống giữ giấy tờ/ghi chú cũ, xóa giấy tờ cần cờ rõ. Schema đầu ra booking/invoice whitelist để tránh quan hệ ORM vô tình mang giấy tờ theo response.
+- Review tích hợp bổ sung UI sẵn sàng theo ngày/task/block, thông báo validation đọc được, bỏ điền sẵn mật khẩu ở login và không hiện tài khoản mẫu trong production, bảng vận hành cuộn ngang ở màn hình hẹp.
+- Kết quả cuối C07–C12: PostgreSQL 117 passed; SQLite 115 passed/2 skipped. Hai session thực kiểm tra đổi vào cùng phòng, lịch rút ngắn dưới tiền đã thu rollback; có test privacy ba vai trò, sequence fixture PostgreSQL được sửa sau khi phát hiện explicit ID không tăng sequence.
+- Browser QA dùng DB dữ liệu giả riêng: ô lịch điền sẵn phòng 304/ngày, preview rồi đổi phòng thành công; phát sinh việc phòng 301 và đi hết start→complete→inspect; lịch sử khách 1 đã ở + 1 đang ở, giấy tờ che; bộ lọc bàn lễ tân; tài khoản housekeeping chỉ thấy việc được giao, không có menu khách/hóa đơn/AI.
+- DB local backup hotel.before-c07-c12.20261023-124227.db, nâng 0007→0012, giữ số dòng bảng cũ và tổng tiền hóa đơn, Alembic check/FK/integrity đạt. Không triển khai Render, không gọi Gemini thật, không gửi email trong đợt này.

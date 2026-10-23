@@ -11,7 +11,7 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></a>
+    <a class="brand" href="{{'/housekeeping' if user.role.value=='housekeeping' else '/'}}"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></a>
     <nav>
       {% if user.role.value!='housekeeping' %}
       <a class="{{'active' if active=='dashboard'}}" href="/"><i class="bi bi-grid"></i>Tổng quan</a>
@@ -54,7 +54,7 @@
 <script>
 const appToast = new bootstrap.Toast(document.getElementById('appToast'));
 function showToast(message, ok=true){const el=document.getElementById('appToast');el.classList.toggle('text-bg-success',ok);el.classList.toggle('text-bg-danger',!ok);document.getElementById('toastMessage').textContent=message;appToast.show()}
-async function apiRequest(url, options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});let data={};try{data=await response.json()}catch(e){}if(!response.ok)throw new Error(data.detail||'Không thể thực hiện thao tác');return data}
+async function apiRequest(url, options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});let data={};try{data=await response.json()}catch(e){}if(!response.ok){const detail=Array.isArray(data.detail)?data.detail.map(x=>`${(x.loc||[]).filter(p=>p!=='body').join('.')}: ${x.msg}`).join('; '):data.detail;throw new Error(typeof detail==='string'?detail:'Không thể thực hiện thao tác')};return data}
 function formJSON(form){return Object.fromEntries(new FormData(form).entries())}
 document.getElementById('menuBtn').onclick=()=>document.getElementById('sidebar').classList.toggle('mobile-open');
 document.getElementById('notificationBtn').onclick=()=>document.getElementById('notificationPanel').classList.toggle('d-none');

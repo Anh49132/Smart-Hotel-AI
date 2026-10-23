@@ -89,6 +89,7 @@ class Customer(Base):
     # The database columns remain nullable and may still contain NULL at runtime.
     email: Mapped[str] = mapped_column(String(160), nullable=True)
     identity_number: Mapped[str] = mapped_column(String(80), nullable=True)
+    preference_notes: Mapped[str] = mapped_column(Text,server_default='')
     bookings: Mapped[list["Booking"]] = relationship(back_populates="customer")
 
 
