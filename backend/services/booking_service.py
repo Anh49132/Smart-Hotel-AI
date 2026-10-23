@@ -33,7 +33,7 @@ def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) ->
             raise HTTPException(400, "Số khách vượt sức chứa của phòng")
         if not room_is_available(db, data.room_id, data.check_in, data.check_out):
             raise HTTPException(409, "Phòng đã có lịch trùng trong khoảng ngày này")
-        booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", **data.model_dump())
+        booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", booked_nightly_rate=room.room_type.nightly_rate, **data.model_dump())
         db.add(booking)
         db.flush()
         db.add(BookingStatusHistory(booking_id=booking.id, to_status=BookingStatus.confirmed, changed_by=actor_id))
@@ -58,6 +58,8 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
         expected, target = transitions[action]
         if booking.status != expected:
             raise HTTPException(409, 'Trạng thái đặt phòng không phù hợp')
+        if action == 'cancel' and booking.invoice is not None:
+            raise HTTPException(409, 'Đặt phòng đã có hóa đơn; cần xử lý điều chỉnh/hoàn tiền trước khi hủy')
         if action == 'check-in':
             other = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status == BookingStatus.checked_in, Booking.id != booking_id).limit(1))
             if room.status != RoomStatus.available or other:
@@ -66,9 +68,9 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
         elif action == 'check-out':
             room.status = RoomStatus.cleaning
         # Cancel changes reservations, not today's physical room state.
-        booking.status = target
         db.add(BookingStatusHistory(booking_id=booking.id, from_status=expected, to_status=target, changed_by=actor_id))
         if action == 'check-out':
             calculate_invoice(db, booking, commit=False)
+        booking.status = target
         db.commit()
         return {'ok': True, 'status': target}

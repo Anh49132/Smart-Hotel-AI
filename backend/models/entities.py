@@ -76,7 +76,7 @@ class Customer(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
-    __table_args__ = (CheckConstraint("check_out > check_in", name="ck_booking_dates"), CheckConstraint("guests > 0", name="ck_booking_guests"), Index('ix_booking_overlap', 'room_id', 'status', 'check_in', 'check_out'))
+    __table_args__ = (CheckConstraint("check_out > check_in", name="ck_booking_dates"), CheckConstraint("guests > 0", name="ck_booking_guests"), CheckConstraint('booked_nightly_rate >= 0', name='ck_booking_rate'), Index('ix_booking_overlap', 'room_id', 'status', 'check_in', 'check_out'))
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(24), unique=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
@@ -84,6 +84,8 @@ class Booking(Base):
     check_in: Mapped[date] = mapped_column(Date, index=True)
     check_out: Mapped[date] = mapped_column(Date, index=True)
     guests: Mapped[int]
+    booked_nightly_rate: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    booked_rate_source: Mapped[str] = mapped_column(String(24), server_default="confirmed")
     status: Mapped[BookingStatus] = mapped_column(SQLEnum(BookingStatus), default=BookingStatus.confirmed)
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -119,6 +121,12 @@ class ServiceUsage(Base):
 
 class Invoice(Base):
     __tablename__ = "invoices"
+    __table_args__ = (
+        CheckConstraint('room_amount >= 0 AND service_amount >= 0', name='ck_invoice_amounts'),
+        CheckConstraint('discount >= 0 AND discount <= room_amount + service_amount', name='ck_invoice_discount'),
+        CheckConstraint('total = room_amount + service_amount - discount', name='ck_invoice_total'),
+        CheckConstraint('paid_amount >= 0 AND paid_amount <= total', name='ck_invoice_paid'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), unique=True)
     room_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))

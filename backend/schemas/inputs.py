@@ -23,7 +23,7 @@ class UserCreate(BaseModel):
 class RoomTypeIn(BaseModel):
     name: str
     capacity: int = Field(ge=1, le=20)
-    nightly_rate: Decimal = Field(gt=0)
+    nightly_rate: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     amenities: str = ""
 
 
@@ -59,7 +59,7 @@ class BookingIn(BaseModel):
 class ServiceIn(BaseModel):
     name: str
     unit: str = "lần"
-    price: Decimal = Field(gt=0)
+    price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     active: bool = True
 
 
@@ -70,7 +70,7 @@ class ServiceUsageIn(BaseModel):
 
 
 class PaymentIn(BaseModel):
-    amount: Decimal = Field(gt=0)
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
 
 
 class RoomAdviceIn(BaseModel):
