@@ -143,6 +143,6 @@ async def ai_report(db: Session) -> str:
     total_rooms = db.scalar(select(func.count(Room.id))) or 0
     occupied = db.scalar(select(func.count(Room.id)).where(Room.status == RoomStatus.occupied)) or 0
     revenue = db.scalar(select(func.coalesce(func.sum(Invoice.paid_amount), 0))) or 0
-    bookings = db.scalar(select(func.count(Booking.id)).where(Booking.status != BookingStatus.cancelled)) or 0
+    bookings = db.scalar(select(func.count(Booking.id)).where(Booking.status.not_in((BookingStatus.cancelled,BookingStatus.no_show)))) or 0
     data = {"total_rooms": total_rooms, "occupied_rooms": occupied, "occupancy_percent": round(occupied / total_rooms * 100, 1) if total_rooms else 0, "paid_revenue": float(revenue), "active_bookings": bookings}
     return await generate_text(f"Số liệu hiện tại: {json.dumps(data, ensure_ascii=False)}", REPORT_SYSTEM)

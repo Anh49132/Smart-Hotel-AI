@@ -1,6 +1,7 @@
 from backend.dependencies import get_current_user, require_roles
 from backend.models import Role, RoomType, RatePlan, User, Room
 from backend.services.maintenance_service import blocks
+from backend.services.frontdesk_service import desk_rows
 from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
@@ -23,7 +24,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory=FRONTEND_DIR / "templates")
 STATUS_LABELS = {
     "available": "Trống", "occupied": "Đang ở", "cleaning": "Đang dọn", "maintenance": "Bảo trì",
-    "confirmed": "Đã xác nhận", "checked_in": "Đang lưu trú", "checked_out": "Đã trả phòng", "cancelled": "Đã hủy",
+    "confirmed": "Đã xác nhận", "checked_in": "Đang lưu trú", "checked_out": "Đã trả phòng", "cancelled": "Đã hủy", "no_show":"Khách không đến",
     "unpaid": "Chưa thanh toán", "partial": "Thanh toán một phần", "paid": "Đã thanh toán",
 }
 templates.env.globals["status_label"] = lambda value: STATUS_LABELS.get(getattr(value, "value", value), getattr(value, "value", value))
@@ -64,6 +65,11 @@ def housekeeping_page(request:Request,user=Depends(require_roles(Role.admin,Role
 @router.get('/maintenance',response_class=HTMLResponse)
 def maintenance_page(request:Request,user=Depends(require_roles(Role.admin,Role.receptionist)),db:Session=Depends(get_db)):
     return templates.TemplateResponse('pages/maintenance.html',page_context(request,user,'maintenance',blocks=blocks(db),rooms=db.scalars(select(Room).order_by(Room.number)).all(),staff=db.scalars(select(User).where(User.role.in_((Role.admin,Role.receptionist)),User.is_active.is_(True))).all()))
+
+
+@router.get('/frontdesk',response_class=HTMLResponse)
+def frontdesk_page(request:Request,user=Depends(require_roles(Role.admin,Role.receptionist)),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/frontdesk.html',page_context(request,user,'frontdesk',desk=desk_rows(db),tomorrow=str(hotel_today()+timedelta(days=1))))
 
 
 @router.get("/", response_class=HTMLResponse)

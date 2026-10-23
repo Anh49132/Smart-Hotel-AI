@@ -66,13 +66,19 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
             from .inventory_service import maintenance_blocks
             from core.hotel_time import hotel_today
             from datetime import timedelta
+            if not booking.check_in <= hotel_today() < booking.check_out:
+                raise HTTPException(409,'Chỉ nhận phòng trong ngày lưu trú đã đặt; sửa lịch trước nếu khách đến khác ngày')
             if maintenance_blocks(db,room_id,hotel_today(),hotel_today()+timedelta(days=1)):
                 raise HTTPException(409,'Phòng đang khóa bảo trì hôm nay')
             other = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status == BookingStatus.checked_in, Booking.id != booking_id).limit(1))
             if room.status != RoomStatus.available or other or open_task(db,room_id):
                 raise HTTPException(409, 'Phòng chưa sẵn sàng nhận khách hoặc vẫn có khách đang lưu trú')
+            from datetime import datetime
+            booking.actual_check_in = datetime.utcnow()
             room.status = RoomStatus.occupied
         elif action == 'check-out':
+            from datetime import datetime
+            booking.actual_check_out = datetime.utcnow()
             room.status = RoomStatus.cleaning
             create_cleaning_task(db,room_id)
         # Cancel changes reservations, not today's physical room state.

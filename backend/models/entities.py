@@ -24,6 +24,7 @@ class BookingStatus(str, Enum):
     checked_in = "checked_in"
     checked_out = "checked_out"
     cancelled = "cancelled"
+    no_show = "no_show"
 
 
 class PaymentStatus(str, Enum):
@@ -107,6 +108,8 @@ class Booking(Base):
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     customer: Mapped[Customer] = relationship(back_populates="bookings")
+    actual_check_in: Mapped[datetime] = mapped_column(DateTime,nullable=True)
+    actual_check_out: Mapped[datetime] = mapped_column(DateTime,nullable=True)
     room: Mapped[Room] = relationship()
     service_usages: Mapped[list["ServiceUsage"]] = relationship(back_populates="booking", cascade="all, delete-orphan")
     invoice: Mapped["Invoice"] = relationship(back_populates="booking", uselist=False)
@@ -200,14 +203,16 @@ class Invoice(Base):
     __tablename__ = "invoices"
     __table_args__ = (
         CheckConstraint('room_amount >= 0 AND service_amount >= 0', name='ck_invoice_amounts'),
-        CheckConstraint('discount >= 0 AND discount <= room_amount + service_amount', name='ck_invoice_discount'),
-        CheckConstraint('total = room_amount + service_amount - discount', name='ck_invoice_total'),
+        CheckConstraint('discount >= 0 AND discount <= room_amount + service_amount + surcharge_amount', name='ck_invoice_discount'),
+        CheckConstraint('total = room_amount + service_amount + surcharge_amount - discount', name='ck_invoice_total'),
+        CheckConstraint('surcharge_amount >= 0',name='ck_invoice_surcharge'),
         CheckConstraint('paid_amount >= 0 AND paid_amount <= total', name='ck_invoice_paid'),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), unique=True)
     room_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     service_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    surcharge_amount: Mapped[Decimal] = mapped_column(Numeric(12,2),server_default='0')
     discount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     paid_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
@@ -250,3 +255,25 @@ class AIResult(Base):
     reviewed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     reviewed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class HotelPolicy(Base):
+    __tablename__='hotel_policy'
+    __table_args__=(CheckConstraint('id=1',name='ck_policy_singleton'),CheckConstraint('check_in_hour BETWEEN 0 AND 23 AND check_out_hour BETWEEN 0 AND 23 AND no_show_hour BETWEEN 0 AND 23',name='ck_policy_hours'),CheckConstraint('early_fee >= 0 AND late_fee >= 0',name='ck_policy_fees'))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    check_in_hour: Mapped[int]=mapped_column(default=14)
+    check_out_hour: Mapped[int]=mapped_column(default=12)
+    no_show_hour: Mapped[int]=mapped_column(default=23)
+    early_fee: Mapped[Decimal]=mapped_column(Numeric(12,2),default=0)
+    late_fee: Mapped[Decimal]=mapped_column(Numeric(12,2),default=0)
+
+
+class BookingSurcharge(Base):
+    __tablename__='booking_surcharges'
+    __table_args__=(UniqueConstraint('booking_id','kind',name='uq_booking_surcharge'),CheckConstraint("kind IN ('early','late')",name='ck_surcharge_kind'),CheckConstraint('amount > 0',name='ck_surcharge_amount'))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    booking_id: Mapped[int]=mapped_column(ForeignKey('bookings.id'),index=True)
+    kind: Mapped[str]=mapped_column(String(10))
+    amount: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    confirmed_by: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    confirmed_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)

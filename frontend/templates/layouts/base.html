@@ -16,6 +16,7 @@
       {% if user.role.value!='housekeeping' %}
       <a class="{{'active' if active=='dashboard'}}" href="/"><i class="bi bi-grid"></i>Tổng quan</a>
       <p>VẬN HÀNH</p>
+      {% if user.role.value in ['admin','receptionist'] %}<a href="/frontdesk"><i class="bi bi-person-workspace"></i>Bàn lễ tân</a>{% endif %}
       <a class="{{'active' if active=='rooms'}}" href="/rooms"><i class="bi bi-door-open"></i>Phòng</a>
       {% if user.role.value=='admin' %}<a class="{{'active' if active=='rates'}}" href="/rates"><i class="bi bi-tags"></i>Loại phòng & bảng giá</a>{% endif %}
       <a class="{{'active' if active=='bookings'}}" href="/bookings"><i class="bi bi-calendar2-check"></i>Đặt phòng</a>

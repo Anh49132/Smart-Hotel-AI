@@ -54,12 +54,12 @@ def reports_page_context(db: Session):
     for year, month in periods:
         start = date(year, month, 1)
         next_start = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
-        month_bookings = db.scalars(select(Booking).where(Booking.status != BookingStatus.cancelled, Booking.check_in < next_start, Booking.check_out > start)).all()
+        month_bookings = db.scalars(select(Booking).where(Booking.status.not_in((BookingStatus.cancelled,BookingStatus.no_show)), Booking.check_in < next_start, Booking.check_out > start)).all()
         room_nights = sum(((min(item.check_out, next_start) - max(item.check_in, start)).days for item in month_bookings))
         capacity = total_rooms * monthrange(year, month)[1]
         labels.append(f'T{month}/{str(year)[2:]}')
         occupancy.append(round(float(room_nights or 0) / capacity * 100, 1) if capacity else 0)
         month_revenue = db.scalar(select(func.coalesce(func.sum(Invoice.paid_amount), 0)).where(Invoice.issued_at >= datetime(year, month, 1), Invoice.issued_at < (datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)))) or 0
         revenue.append(round(float(month_revenue) / 1000000, 1))
-    summary = {'occupancy': occupancy[-1] if occupancy else 0, 'revenue': revenue[-1] if revenue else 0, 'bookings': db.scalar(select(func.count(Booking.id)).where(Booking.status != BookingStatus.cancelled)) or 0, 'customers': db.scalar(select(func.count(Customer.id))) or 0}
+    summary = {'occupancy': occupancy[-1] if occupancy else 0, 'revenue': revenue[-1] if revenue else 0, 'bookings': db.scalar(select(func.count(Booking.id)).where(Booking.status.not_in((BookingStatus.cancelled,BookingStatus.no_show)))) or 0, 'customers': db.scalar(select(func.count(Customer.id))) or 0}
     return {'labels': labels, 'occupancy': occupancy, 'revenue': revenue, 'summary': summary}
