@@ -117,3 +117,11 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Tách dòng chi phí khỏi sổ tiền: từng đêm/chặng, dịch vụ snapshot, phụ thu, giảm giá; cọc/thu/hoàn ở bảng riêng để không trừ/cộng hai lần. Dữ liệu legacy/chênh hóa đơn có dòng đối chiếu rõ, không dựng chi tiết giả.
 - HTML in từng lưu trú/phiếu thu độc lập Bootstrap, A4/@media print, không giấy tờ/thông tin thẻ. Ghi rõ chứng từ nội bộ, không phải hóa đơn điện tử. Lễ tân chỉ in phiếu cọc do mình ghi; bảng kê/sổ giao dịch dành cho admin/kế toán.
 - Test tổng dòng bằng tổng hóa đơn, đối trừ cọc đúng, mở trang không tạo tiền và quyền in. Kiểm tra bản in trong trình duyệt và toàn bộ hồi quy ghi cuối đợt.
+
+
+## C15 — Quyết toán hủy/no-show và hoàn tiền
+
+- Chính sách phần trăm trên tổng hóa đơn trước điều chỉnh, snapshot mức phí/người/lý do khi xác nhận sau preview. Không xóa hóa đơn/giao dịch cũ; financial_adjustments giữ tổng gốc và khoản giảm về phí phải trả.
+- Sổ tiền thêm refund với lý do, phương thức, tham chiếu và idempotency. Hoàn tối đa số đã nhận ròng; lịch hủy/no-show giữ lại phí đã chốt. Refund chủ động khi lịch còn hiệu lực làm tăng công nợ, không tự giảm phí lưu trú. Không chuyển tiền tự động.
+- Hủy/no-show sau thu cọc chỉ đi qua quyền admin/kế toán; trạng thái physical phòng không bị ghi đè. Bảng kê/danh sách hóa đơn hiển thị tổng hiệu lực, số dư âm là còn phải hoàn. Phiếu hoàn riêng.
+- Test hoàn một phần, retry, hoàn đồng thời, giữ phí, đồng hồ no-show và tổng dòng bảng kê; migration kiểm tra cả SQLite/PostgreSQL. Kết quả toàn bộ ghi cuối đợt.

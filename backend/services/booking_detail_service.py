@@ -1,4 +1,4 @@
-from .money_service import serialized_balance,net_received
+from .money_service import serialized_balance,net_received,charge_total
 """Read-only reservation detail; opening a page never creates an invoice."""
 from decimal import Decimal
 from datetime import timedelta
@@ -65,7 +65,7 @@ def booking_detail(db, booking_id, role):
         'surcharges':[{'kind':s.kind,'amount':amount(s.amount),'confirmed_at':s.confirmed_at.isoformat()} for s in surcharges],
         'estimate':{'surcharge_amount':amount(surcharge_total),'room_amount':amount(room_total), 'service_amount':amount(service_total), 'discount':amount(discount), 'total':amount(estimated)},
         'invoice':{'surcharge_amount':amount(invoice.surcharge_amount),'id':invoice.id, 'room_amount':amount(invoice.room_amount), 'service_amount':amount(invoice.service_amount), 'discount':amount(invoice.discount),
-                   'total':amount(invoice.total), 'paid_amount':amount(invoice.paid_amount), 'remaining':amount(invoice.total-invoice.paid_amount), 'status':invoice.payment_status.value,
+                   'original_total':amount(invoice.total),'total':amount(charge_total(db,booking)), 'paid_amount':amount(invoice.paid_amount), 'remaining':amount(charge_total(db,booking)-net_received(db,booking_id)), 'status':invoice.payment_status.value,
                    'finalized':booking.status.value == 'checked_out', 'ledger_gap':amount(ledger_gap)} if invoice else None,
         'stays':[{'room':number,'check_in':str(stay.check_in),'check_out':str(stay.check_out)} for stay,number in db.execute(select(RoomStay,Room.number).join(Room,Room.id==RoomStay.room_id).where(RoomStay.booking_id==booking_id).order_by(RoomStay.check_in))],
         'changes':[{'reason':c.reason,'at':c.changed_at.isoformat(),'actor':names.get(c.changed_by,'Hệ thống'),'before':c.before_data,'after':c.after_data} for c in changes],
@@ -74,7 +74,7 @@ def booking_detail(db, booking_id, role):
         'actions':{'check_in':can_check_in, 'cancel':frontdesk and booking.status.value == 'confirmed' and invoice is None and net_received(db,booking_id)==0,
                    'check_out':frontdesk and booking.status.value == 'checked_in', 'add_service':frontdesk and booking.status.value == 'checked_in',
                    'calculate':finance and booking.status.value not in ('cancelled','no_show','checked_out'),
-                   'pay':finance and invoice is not None and invoice.paid_amount < invoice.total and booking.status.value not in ('cancelled','no_show')},
+                   'pay':finance and invoice is not None and charge_total(db,booking)>net_received(db,booking_id)},
     }
 
 

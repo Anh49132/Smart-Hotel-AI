@@ -4,6 +4,7 @@ from backend.services.maintenance_service import blocks
 from backend.services.frontdesk_service import desk_rows
 from backend.services.customers_service import customers as customer_search,customer_detail
 from backend.services.folio_service import folio,receipt_document
+from backend.services.refunds_service import cancellation_policy
 from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
@@ -123,6 +124,11 @@ def folio_page(booking_id:int,request:Request,user=Depends(require_roles(Role.ad
 @router.get('/receipts/{entry_id}/print',response_class=HTMLResponse)
 def receipt_print(entry_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
     return templates.TemplateResponse('pages/receipt_print.html',{'request':request,'receipt':receipt_document(db,entry_id,user)})
+
+
+@router.get('/bookings/{booking_id}/finance',response_class=HTMLResponse)
+def finance_page(booking_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/finance.html',page_context(request,user,'invoices',folio=folio(db,booking_id),policy=cancellation_policy(db)))
 
 
 @router.get('/bookings/{booking_id}', response_class=HTMLResponse)
