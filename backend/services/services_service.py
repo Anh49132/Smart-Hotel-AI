@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from .persistence import commit_or_conflict
+from .transactions import lock_room, write_transaction
 
 def services(db: Session):
     return db.scalars(select(HotelService)).all()
@@ -44,16 +45,21 @@ def delete_service(service_id: int, db: Session):
     return {'ok': True}
 
 def use_service(data: ServiceUsageIn, db: Session):
-    service = db.get(HotelService, data.service_id)
-    booking = db.get(Booking, data.booking_id)
-    if not service or not booking:
-        raise HTTPException(404, 'Không tìm thấy dịch vụ hoặc đặt phòng')
-    if not service.active:
-        raise HTTPException(409, 'Dịch vụ đã ngừng hoạt động')
-    if booking.status != BookingStatus.checked_in:
-        raise HTTPException(409, 'Chỉ ghi dịch vụ cho khách đang lưu trú')
-    item = ServiceUsage(**data.model_dump(), unit_price=service.price)
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
+    with write_transaction(db):
+        room_id = db.scalar(select(Booking.room_id).where(Booking.id == data.booking_id))
+        if room_id is None:
+            raise HTTPException(404, 'Không tìm thấy đặt phòng')
+        lock_room(db, room_id)
+        booking = db.scalar(select(Booking).where(Booking.id == data.booking_id).with_for_update().execution_options(populate_existing=True))
+        service = db.get(HotelService, data.service_id)
+        if not service:
+            raise HTTPException(404, 'Không tìm thấy dịch vụ')
+        if not service.active:
+            raise HTTPException(409, 'Dịch vụ đã ngừng hoạt động')
+        if booking.status != BookingStatus.checked_in:
+            raise HTTPException(409, 'Chỉ ghi dịch vụ cho khách đang lưu trú')
+        item = ServiceUsage(**data.model_dump(), unit_price=service.price)
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        return item
