@@ -1,9 +1,27 @@
 import os
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from uuid import uuid4
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 
 _test_directory = TemporaryDirectory(prefix="hotel-tests-")
-os.environ["DATABASE_URL"] = f"sqlite:///{(Path(_test_directory.name) / 'hotel.db').as_posix()}"
+_pg_admin = None
+_pg_schema = None
+if os.environ.get("HOTEL_TEST_DATABASE_URL"):
+    _url = make_url(os.environ["HOTEL_TEST_DATABASE_URL"])
+    if _url.drivername in ("postgres", "postgresql"):
+        _url = _url.set(drivername="postgresql+psycopg")
+    if _url.get_backend_name() != "postgresql":
+        raise ValueError("HOTEL_TEST_DATABASE_URL must be PostgreSQL")
+    _pg_admin = create_engine(_url)
+    _pg_schema = "hotel_test_" + uuid4().hex
+    with _pg_admin.begin() as _connection:
+        _connection.execute(text(f'CREATE SCHEMA "{_pg_schema}"'))
+    _url = _url.update_query_dict({"options": f"-csearch_path={_pg_schema}"})
+    os.environ["DATABASE_URL"] = _url.render_as_string(hide_password=False)
+else:
+    os.environ["DATABASE_URL"] = f"sqlite:///{(Path(_test_directory.name) / 'hotel.db').as_posix()}"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
@@ -39,4 +57,8 @@ def client(db):
 
 def pytest_sessionfinish(session, exitstatus):
     engine.dispose()
+    if _pg_admin is not None:
+        with _pg_admin.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA "{_pg_schema}" CASCADE'))
+        _pg_admin.dispose()
     _test_directory.cleanup()
