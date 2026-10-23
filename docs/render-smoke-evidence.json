@@ -1,0 +1,28 @@
+{
+  "url": "https://lotus-hotel-ai.onrender.com",
+  "data": "dedicated synthetic demo only",
+  "checks": [
+    "health",
+    "admin_login",
+    "secure_httponly_cookie",
+    "page /",
+    "page /rooms",
+    "page /bookings",
+    "page /calendar",
+    "page /customers",
+    "page /invoices",
+    "page /reports",
+    "page /housekeeping",
+    "page /ai",
+    "twelve_seed_rooms",
+    "seed_bookings",
+    "public_api_denied",
+    "pdf",
+    "csrf_origin",
+    "gemini_report"
+  ],
+  "rooms": 12,
+  "bookings": 21,
+  "ai_requests": 1,
+  "checked_at": "2026-10-23T16:05:17Z"
+}

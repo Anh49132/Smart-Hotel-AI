@@ -1,0 +1,24 @@
+{
+  "scope": "synthetic dedicated Render demo",
+  "custom_marker": "QA-PERSIST-20261023",
+  "password_change_persisted": true,
+  "same_fingerprints_before_after": true,
+  "fingerprints": {
+    "rooms": {
+      "count": 12,
+      "sha256": "60d355c1fc2d3490f1141a693ad0f17c0527228fe240c9e16f1e83de3b5af9dc"
+    },
+    "bookings": {
+      "count": 21,
+      "sha256": "293a55cf4aac072695223530f0509cc631380219329be4343b88c7be79add06d"
+    },
+    "services": {
+      "count": 4,
+      "sha256": "5a56f1a00ba23dc48adbd45130799ea95ebf1abfe0330bb3572ea2e968dff36f"
+    },
+    "ai/results": {
+      "count": 1,
+      "sha256": "bfb883d36e03ebd002bf3a466eb91733b8ba2b4558f72a245d52ec91fc5ca56f"
+    }
+  }
+}
