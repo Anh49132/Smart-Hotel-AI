@@ -19,13 +19,14 @@ from core.database import get_db
 from core.security import set_session_cookie
 from core.login_limiter import login_limiter
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse,Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 router = APIRouter()
 templates = Jinja2Templates(directory=FRONTEND_DIR / "templates")
 templates.env.filters['money']=lambda value:f'{float(value):,.2f} ₫'
+templates.env.globals['demo_mode']=settings.demo_mode
 STATUS_LABELS = {
     "available": "Trống", "occupied": "Đang ở", "cleaning": "Đang dọn", "maintenance": "Bảo trì",
     "confirmed": "Đã xác nhận", "checked_in": "Đang lưu trú", "checked_out": "Đã trả phòng", "cancelled": "Đã hủy", "no_show":"Khách không đến",
@@ -102,8 +103,8 @@ def calendar_page(request: Request, start: date | None = None, end: date | None 
 
 
 @router.get("/bookings", response_class=HTMLResponse)
-def bookings_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return templates.TemplateResponse('pages/bookings.html', page_context(request, user, 'bookings', **bookings_page_context(db)))
+def bookings_page(request:Request,q:str=Query('',max_length=100),status:str=Query('',pattern='^(|confirmed|checked_in|checked_out|cancelled|no_show)$'),page:int=Query(1,ge=1),user=Depends(get_current_user),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/bookings.html',page_context(request,user,'bookings',**bookings_page_context(db,q,status,page)))
 
 
 @router.get("/customers", response_class=HTMLResponse)
@@ -120,6 +121,18 @@ def customer_detail_page(customer_id:int,request:Request,page:int=Query(1,ge=1),
 @router.get('/bookings/{booking_id}/folio',response_class=HTMLResponse)
 def folio_page(booking_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
     return templates.TemplateResponse('pages/folio_print.html',{'request':request,'folio':folio(db,booking_id)})
+
+
+@router.get('/bookings/{booking_id}/folio.pdf')
+def folio_download(booking_id:int,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
+    from backend.services.pdf_service import folio_pdf
+    return Response(folio_pdf(folio(db,booking_id)),media_type='application/pdf',headers={'Content-Disposition':f'attachment; filename="folio-{booking_id}.pdf"','Cache-Control':'no-store'})
+
+
+@router.get('/receipts/{entry_id}/document.pdf')
+def receipt_download(entry_id:int,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
+    from backend.services.pdf_service import receipt_pdf
+    return Response(receipt_pdf(receipt_document(db,entry_id,user)),media_type='application/pdf',headers={'Content-Disposition':f'attachment; filename="receipt-{entry_id}.pdf"','Cache-Control':'no-store'})
 
 
 @router.get('/receipts/{entry_id}/print',response_class=HTMLResponse)
@@ -149,8 +162,8 @@ def users_page(request: Request, user=Depends(require_roles(Role.admin)), db: Se
 
 
 @router.get("/invoices", response_class=HTMLResponse)
-def invoices_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    return templates.TemplateResponse('pages/invoices.html', page_context(request, user, 'invoices', **invoices_page_context(db)))
+def invoices_page(request:Request,q:str=Query('',max_length=100),status:str=Query('',pattern='^(|unpaid|partial|paid)$'),page:int=Query(1,ge=1),user=Depends(get_current_user),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/invoices.html',page_context(request,user,'invoices',**invoices_page_context(db,q,status,page)))
 
 
 @router.get("/ai", response_class=HTMLResponse)

@@ -170,3 +170,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Prompt: “Kiểm thử cả quy trình nhiều vai trò; đối chiếu ca/folio/báo cáo sau đổi phòng, cọc và thu cuối; đo dữ liệu demo bằng schema riêng.”
 - Bổ sung luồng acceptance nhiều vai trò và ma trận quyền. Giữ các test đồng thời/migration đã có, không thay bằng smoke test. Sửa danh sách phòng từ chuỗi HTML sang Option.text an toàn.
 - Kết quả: PostgreSQL 157 đạt; SQLite 155 đạt/2 bỏ qua. Benchmark PostgreSQL riêng 30 phòng/120 booking, 72 GET đều 200, tối đa 68,21 ms trong mẫu tuần tự local; không suy diễn tải production. Chi tiết tại acceptance-c21.md và benchmark JSON.
+
+
+## C22 — Dữ liệu demo, UX và PDF
+- Prompt: “Seed dữ liệu giả đủ các trạng thái và tài chính, chạy lại không reset; hoàn thiện tìm kiếm toàn CSDL, responsive, lỗi mạng và bản in tiếng Việt.”
+- Seed chỉ dành cho khách sạn demo chưa có dữ liệu, có marker; nhân sự có mật khẩu riêng/đổi lần đầu. Dữ liệu mẫu không làm thay đổi CSDL local thật. Kiểm thử idempotency, số dư và folio trên PostgreSQL đạt.
+- Phân trang/tìm server booking/hóa đơn, khóa form thường, timeout có thông báo, local Bootstrap/Icon/font và giấy phép; dashboard phân biệt sẵn sàng vật lý với phòng trống theo lịch, thu ròng từ MoneyEntry.
+- Browser 390×844/1366×900: menu, bảng/lịch, tìm booking ngoài trang đầu, chọn ô lịch và tạo booking QA thành công. PDF có nhúng font/escape/quyền/no-store; xuất và render hai mẫu qua Poppler, sửa khối chữ ký thành hai cột sau kiểm tra hình ảnh. Chưa kiểm tra điện thoại/máy in vật lý.

@@ -25,7 +25,10 @@ async def lifespan(app: FastAPI):
             for account in db.scalars(select(User).where(User.is_active.is_(True))):
                 if verify_password('Admin@123', account.password_hash):
                     raise RuntimeError('Change sample account passwords before production startup')
-        if settings.seed_demo_data and not db.scalar(select(RoomType.id).limit(1)):
+        if settings.demo_mode and settings.demo_seed_on_start:
+            from backend.services.demo_service import seed_demo
+            seed_demo(db,settings.demo_staff_password.get_secret_value())
+        if settings.seed_demo_data and not settings.demo_mode and not db.scalar(select(RoomType.id).limit(1)):
             deluxe = RoomType(name="Deluxe City View", capacity=2, nightly_rate=980000, amenities="Giường King · Bồn tắm · City view")
             family = RoomType(name="Family Suite", capacity=4, nightly_rate=1650000, amenities="2 phòng ngủ · Bếp nhỏ · Ban công")
             db.add_all([deluxe, family]); db.flush()

@@ -4,6 +4,7 @@ from .rates_service import quote
 from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType,Role,FinancialAdjustment
 from .gemini_client import generate_content, generate_text, sanitize_free_text
 from datetime import date
+from core.hotel_time import hotel_today
 from decimal import Decimal
 from fastapi import HTTPException
 from sqlalchemy import func, select, case
@@ -62,14 +63,14 @@ def chatbot_context(db:Session,user=None)->dict:
     ) or 0
     arrivals_today = db.scalar(
         select(func.count(Booking.id)).where(
-            Booking.check_in == date.today(), Booking.status == BookingStatus.confirmed
+            Booking.check_in == hotel_today(), Booking.status == BookingStatus.confirmed
         )
     ) or 0
     outstanding = db.scalar(
         select(func.coalesce(func.sum(case((Invoice.total+func.coalesce(FinancialAdjustment.amount,0)>Invoice.paid_amount,Invoice.total+func.coalesce(FinancialAdjustment.amount,0)-Invoice.paid_amount),else_=0)),0)).outerjoin(FinancialAdjustment,FinancialAdjustment.booking_id==Invoice.booking_id)
     ) or 0
     result = {
-        "ngay_hien_tai": str(date.today()),
+        "ngay_hien_tai": str(hotel_today()),
         "tong_so_phong": len(rooms),
         "so_luong_theo_trang_thai": room_counts,
         "phong": [

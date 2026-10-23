@@ -296,6 +296,13 @@ class AIResult(Base):
     reviewed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
 
+class DemoSeed(Base):
+    __tablename__='demo_seeds'
+    name: Mapped[str]=mapped_column(String(60),primary_key=True)
+    anchor_date: Mapped[date]=mapped_column(Date)
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+
+
 class AIReviewEvent(Base):
     __tablename__='ai_review_events'
     id: Mapped[int]=mapped_column(primary_key=True)
