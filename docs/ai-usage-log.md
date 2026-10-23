@@ -63,3 +63,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Khóa phòng theo thứ tự ID rồi booking/loại phòng, yêu cầu preview + expected_total; xung đột hoặc tổng hóa đơn thấp hơn tiền đã thu rollback toàn bộ. Giá đêm đã ở được giữ, đổi phòng đang ở có hiệu lực hôm nay Asia/Bangkok; phòng cũ cần dọn. Dữ liệu legacy thiếu giá đêm phải đối chiếu trước khi đổi khi đang ở.
 - API/giao diện chi tiết hỗ trợ xem giá và xác nhận, hiển thị các chặng và audit. Kiểm tra phòng vừa thay đổi để các thao tác đồng thời không sửa tình trạng phòng cũ.
 - Test thay đổi xác nhận, lỗi trùng rollback, đổi giữa kỳ/giữ giá, sát biên, giá cần xác nhận, quyền/render và migration. SQLite nhóm C07/detail/migration 13 đạt, 1 bỏ qua PostgreSQL; nhóm PostgreSQL và toàn bộ hồi quy được ghi ở cuối đợt C07–C12.
+
+
+## C08 — Lịch phòng
+
+- API/HTML lịch theo chặng phân phòng, ngày trả loại trừ; bộ lọc ngày/loại/tầng/số khách, phân trang 20 phòng và tối đa 31 ngày. Ô trống liên kết đặt phòng với ngày/phòng điền sẵn; mã lịch mở chi tiết lưu trú.
+- Giao diện cuộn ngang và cột/tiêu đề cố định, không triển khai kéo thả khi chưa có kiểm chứng xung đột tương đương. Filter phòng trống có tham số loại/tầng ở backend.
+- Nhóm test SQLite lịch + C07: 5 đạt, gồm sát biên, bộ lọc, trống và chưa đăng nhập. Kiểm thử tương tác browser và toàn bộ hồi quy ghi ở cuối đợt.
