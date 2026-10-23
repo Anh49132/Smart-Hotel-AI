@@ -177,3 +177,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Seed chỉ dành cho khách sạn demo chưa có dữ liệu, có marker; nhân sự có mật khẩu riêng/đổi lần đầu. Dữ liệu mẫu không làm thay đổi CSDL local thật. Kiểm thử idempotency, số dư và folio trên PostgreSQL đạt.
 - Phân trang/tìm server booking/hóa đơn, khóa form thường, timeout có thông báo, local Bootstrap/Icon/font và giấy phép; dashboard phân biệt sẵn sàng vật lý với phòng trống theo lịch, thu ròng từ MoneyEntry.
 - Browser 390×844/1366×900: menu, bảng/lịch, tìm booking ngoài trang đầu, chọn ô lịch và tạo booking QA thành công. PDF có nhúng font/escape/quyền/no-store; xuất và render hai mẫu qua Poppler, sửa khối chữ ký thành hai cột sau kiểm tra hình ảnh. Chưa kiểm tra điện thoại/máy in vật lý.
+
+## C23 — Đóng gói và phục hồi
+- Prompt: “Đóng gói Docker một worker, kiểm tra sức khỏe CSDL, giới hạn body, CI; backup PostgreSQL cùng snapshot và restore đích rỗng có đối chiếu.”
+- Docker chạy non-root, ghim Python digest và dependency lock; secrets chỉ ở môi trường. Startup chạy Alembic có khóa, production từ chối SQLite. Health check SELECT 1, trả lỗi chung; request body giới hạn 64 KB trước parser.
+- pg_dump/pg_restore chạy thật trên hai database QA mới ở localhost. Phát hiện đường dẫn Windows tiếng Việt và public schema có sẵn; sửa dùng binary stream và TOC bỏ riêng CREATE SCHEMA public. Restore nguyên tử, không --clean, từ chối đích đã có bảng. Đối chiếu 21 booking/12 phòng, tổng tiền, 23 sequence, revision 0022; bằng chứng backup-restore-evidence.json.
+- SQLite local được backup trước nâng 0016→0022; số dòng bảng cũ và từng giá trị hóa đơn giữ nguyên, integrity/FK đạt. Không chuyển dữ liệu thật lên Render.
+- Workflow CI được bổ sung cho PostgreSQL/SQLite và Docker. Không coi việc tạo workflow là kết quả CI đã đạt. Rollback code chỉ dùng artifact tương thích migration; không tự downgrade dữ liệu vận hành.

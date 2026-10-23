@@ -67,6 +67,8 @@ def transfer(source_path, target_url):
                                     raise ValueError(f"Numeric total mismatch: {table.name}.{column.name}")
                     if target.dialect.name == "postgresql":
                         for table in tables:
+                            if 'id' not in table.c:
+                                continue  # e.g. demo_seeds has a natural string key.
                             dst.execute(text("SELECT setval(pg_get_serial_sequence(:table, 'id'), COALESCE((SELECT MAX(id) FROM " + dst.dialect.identifier_preparer.quote(table.name) + "), 1), EXISTS(SELECT 1 FROM " + dst.dialect.identifier_preparer.quote(table.name) + "))"), {"table": table.name})
                 return counts
             finally:
