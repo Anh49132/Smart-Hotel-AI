@@ -189,3 +189,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Prompt: “Dùng workspace Render đã chọn, PostgreSQL Free riêng và secret môi trường; kiểm tra CI/Linux trước phát hành, không tác động nhatot.”
 - Connector không cung cấp URL DB nên dùng Dashboard đã đăng nhập để lấy URL nội bộ vào file ignored, không đưa secret vào chat. External DB vẫn chặn truy cập ngoài.
 - CI đầu Docker build đạt, pytest entrypoint Linux lỗi import core.database. Sửa gọi python -m pytest, ghim Ubuntu/Python và SHA các release action chính thức. Các test không bị bỏ để làm CI xanh.
+
+## C24 — Báo cáo và bàn giao
+- Prompt: “Hoàn thiện báo cáo từ code/test thực, ERD/từ điển dữ liệu, ma trận yêu cầu, demo và slide; không dựng minh chứng review/diễn tập.”
+- Báo cáo Markdown, metadata dictionary 24 bảng, actor/use case/ERD, quy trình tài chính/AI, ma trận và câu hỏi bảo vệ. README cập nhật môi trường đã thử và phạm vi tài khoản do admin tạo, không mô tả sai thành tự đăng ký công khai.
+- Slide 10 trang bằng Artifact Tool/Artifact Session, nội dung sửa được, có ảnh UI QA và URL Render; render kiểm tra từng trang, sửa ảnh nhúng, kiểm tra cấu trúc/font/bố cục và import lại. Không giả đã mở trong PowerPoint.
+- Cloud thật: CI Linux PostgreSQL/SQLite/Docker success; Render live, 18 smoke checks gồm Gemini/PDF. Thêm một dịch vụ QA riêng, redeploy và fingerprint phòng/booking/dịch vụ/AI khớp; mật khẩu đổi không bị reset. Dự án nhatot giữ metadata cũ.
+- Sinh viên còn cần tự review chéo, diễn tập và trình bày; author Git theo phân công không chứng minh các hoạt động con người này.
