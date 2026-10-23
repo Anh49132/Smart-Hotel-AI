@@ -1,0 +1,84 @@
+[
+  {
+    "probe": "cancel_rebook",
+    "rebook_http": 500
+  },
+  {
+    "probe": "cancellation_changes_live_room",
+    "before": "occupied",
+    "after_cancel_future": "available"
+  },
+  {
+    "probe": "maintenance_checkin",
+    "checkin_http": 200,
+    "room_status": "occupied"
+  },
+  {
+    "probe": "invalid_customer",
+    "booking_with_missing_customer_http": 200
+  },
+  {
+    "probe": "delete_booked_room",
+    "delete_http": 200,
+    "foreign_key_violations": 1
+  },
+  {
+    "probe": "invoice_cancelled",
+    "invoice_http": 200,
+    "payment_for_cancelled_booking_http": 200
+  },
+  {
+    "probe": "price_snapshot",
+    "booked_rate": 900000,
+    "new_rate": 1200000,
+    "two_nights_room_amount": 2400000.0
+  },
+  {
+    "probe": "discount_checkout",
+    "initial_discount": 100000.0,
+    "discount_after_checkout": "0",
+    "total_after_checkout": "1800000"
+  },
+  {
+    "probe": "room_advice_validation",
+    "reversed_dates_http": 200,
+    "ai_called": 1,
+    "unlisted_room_output_passed_through": true
+  },
+  {
+    "probe": "chatbot_sensitive_input",
+    "http": 200,
+    "synthetic_sensitive_input_forwarded": true
+  },
+  {
+    "probe": "occupancy_and_roles",
+    "rooms_occupied": 0,
+    "dashboard_occupancy_with_only_cleaning_room": 100,
+    "receptionist_invoices_page_http": 200
+  },
+  {
+    "probe": "filter_room_type",
+    "requested_type": 1,
+    "returned_type_ids": [
+      1,
+      2
+    ]
+  },
+  {
+    "probe": "back_to_back",
+    "first_http": 200,
+    "adjacent_booking_http": 200
+  },
+  {
+    "probe": "concurrent_overlap",
+    "outcomes": [
+      {
+        "created_id": 2
+      },
+      {
+        "created_id": 1
+      }
+    ],
+    "overlapping_bookings_created": 2
+  }
+]

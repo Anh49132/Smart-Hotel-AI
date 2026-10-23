@@ -34,14 +34,19 @@ def test_checkout_invoice(db):
 def test_ai_email_mock(client):
     response = client.post("/api/bookings", json={"customer_id":1,"room_id":1,"check_in":"2026-11-01","check_out":"2026-11-03","guests":2})
     booking_id = response.json()["id"]
-    with patch("backend.services.ai_service.ollama", new=AsyncMock(return_value="Kính gửi Nguyễn An, đặt phòng đã được xác nhận.")):
+    with patch("backend.services.ai_service.generate_text", new=AsyncMock(return_value="Kính gửi Nguyễn An, đặt phòng đã được xác nhận.")):
         response = client.post("/api/ai/email", json={"booking_id":booking_id,"kind":"confirmation"})
     assert response.status_code == 200
     assert "xác nhận" in response.json()["content"]
+    result_id = response.json()["ai_result_id"]
+    assert client.get("/api/ai/results").json()[0]["id"] == result_id
+    reviewed = client.post(f"/api/ai/results/{result_id}/review?approved=true")
+    assert reviewed.json()["review_status"] == "approved"
+    assert client.post(f"/api/ai/results/{result_id}/review?approved=false").status_code == 409
 
 
 def test_ai_chat_mock(client):
-    with patch("backend.services.ai_service.ollama_chat", new=AsyncMock(return_value="Hiện có phòng 302 đang trống.")):
+    with patch("backend.services.ai_service.generate_chat", new=AsyncMock(return_value="Hiện có phòng 302 đang trống.")):
         response = client.post("/api/ai/chat", json={"messages":[{"role":"user","content":"Phòng nào đang trống?"}]})
     assert response.status_code == 200
     assert "302" in response.json()["content"]
@@ -68,6 +73,14 @@ def test_complete_stay_and_payment_flow(client, db):
     payment = client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":float(invoice.total)})
     assert payment.status_code == 200
     assert payment.json()["payment_status"] == "paid"
+    history = client.get(f"/api/bookings/{booking_id}/history").json()
+    assert [row["to_status"] for row in history] == ["confirmed", "checked_in", "checked_out"]
+    assert all(row["changed_by"] == 1 for row in history)
+    payments = client.get(f"/api/invoices/{invoice.id}/payments").json()
+    assert len(payments) == 1
+    assert Decimal(str(payments[0]["amount"])) == invoice.total
+    assert payments[0]["paid_by"] == 1
+    assert client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":1}).status_code == 400
 
 
 def test_room_availability_endpoint(client):

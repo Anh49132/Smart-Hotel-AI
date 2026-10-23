@@ -41,6 +41,7 @@
   </main>
 </div>
 <div class="toast-container position-fixed top-0 end-0 p-3"><div id="appToast" class="toast align-items-center border-0" role="alert"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
+{% include 'components/chat_widget.html' %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const appToast = new bootstrap.Toast(document.getElementById('appToast'));
@@ -52,4 +53,5 @@ document.getElementById('notificationBtn').onclick=()=>document.getElementById('
 document.getElementById('globalSearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();document.querySelectorAll('[data-searchable]').forEach(el=>el.classList.toggle('d-none',q&&!el.textContent.toLowerCase().includes(q)))})
 </script>
 {% block scripts %}{% endblock %}
+<script src="/static/js/chat-widget.js"></script>
 </body></html>

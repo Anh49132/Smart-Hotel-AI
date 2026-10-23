@@ -1,6 +1,6 @@
 from .booking_service import ACTIVE_BOOKING_STATUSES
 from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType
-from core.config import settings
+from .gemini_client import generate_content, generate_text, sanitize_free_text
 from datetime import date
 from decimal import Decimal
 from fastapi import HTTPException
@@ -8,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 import json
-import httpx
 
 
 ROOM_SYSTEM = """Bạn là trợ lý lễ tân khách sạn. Chỉ đề xuất phòng trong danh sách được cung cấp, tối đa 3 phòng. Không bịa dữ liệu. Trả lời tiếng Việt ngắn gọn."""
@@ -23,34 +22,20 @@ Nếu câu hỏi nằm ngoài dữ liệu hoặc nghiệp vụ khách sạn, hã
 Khi đề xuất phòng, chỉ chọn phòng có trạng thái Trống và nhắc nhân viên kiểm tra ngày lưu trú trên màn hình Đặt phòng."""
 
 
-async def ollama(prompt: str, system: str) -> str:
-    try:
-        async with httpx.AsyncClient(timeout=35) as client:
-            response = await client.post(f"{settings.ollama_url}/api/generate", json={"model": settings.ollama_model, "system": system, "prompt": prompt, "stream": False})
-            response.raise_for_status()
-            return response.json().get("response", "").strip()
-    except (httpx.HTTPError, ValueError) as exc:
-        raise HTTPException(503, "Ollama chưa sẵn sàng. Hãy kiểm tra dịch vụ và model đã cấu hình.") from exc
-
-
-async def ollama_chat(messages: list[dict], context: dict) -> str:
+async def generate_chat(messages: list[dict], context: dict) -> str:
     system = f"{CHAT_SYSTEM}\n\nNGỮ CẢNH DỮ LIỆU HIỆN TẠI:\n{json.dumps(context, ensure_ascii=False)}"
-    payload = {
-        "model": settings.ollama_model,
-        "messages": [{"role": "system", "content": system}, *messages],
-        "stream": False,
-        "options": {"temperature": 0.25},
-    }
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(f"{settings.ollama_url}/api/chat", json=payload)
-            response.raise_for_status()
-            content = response.json().get("message", {}).get("content", "").strip()
-            if not content:
-                raise ValueError("Ollama trả về nội dung rỗng")
-            return content
-    except (httpx.HTTPError, ValueError, TypeError) as exc:
-        raise HTTPException(503, "Ollama chưa sẵn sàng. Hãy kiểm tra dịch vụ và model đã cấu hình.") from exc
+    contents = []
+    for message in messages:
+        role = "model" if message["role"] == "assistant" else "user"
+        # A retained history can start with an assistant turn after trimming.
+        if not contents and role == "model":
+            continue
+        part = {"text": sanitize_free_text(message["content"])}
+        if contents and contents[-1]["role"] == role:
+            contents[-1]["parts"].append(part)
+        else:
+            contents.append({"role": role, "parts": [part]})
+    return await generate_content(contents, system)
 
 
 def chatbot_context(db: Session) -> dict:
@@ -89,17 +74,17 @@ def chatbot_context(db: Session) -> dict:
         "so_luong_theo_trang_thai": room_counts,
         "phong": [
             {
-                "so_phong": room.number,
-                "loai": room.room_type.name,
+                "so_phong": sanitize_free_text(room.number),
+                "loai": sanitize_free_text(room.room_type.name),
                 "suc_chua": room.room_type.capacity,
                 "gia_moi_dem": float(room.room_type.nightly_rate),
-                "tien_ich": room.room_type.amenities,
+                "tien_ich": sanitize_free_text(room.room_type.amenities),
                 "trang_thai": status_labels.get(room.status, room.status.value),
             }
             for room in rooms
         ],
         "dich_vu_dang_hoat_dong": [
-            {"ten": service.name, "don_vi": service.unit, "gia": float(service.price)}
+            {"ten": sanitize_free_text(service.name), "don_vi": sanitize_free_text(service.unit), "gia": float(service.price)}
             for service in services
         ],
         "so_dat_phong_dang_hieu_luc": active_bookings,
@@ -113,7 +98,7 @@ async def hotel_chat(db: Session, messages) -> str:
         {"role": message.role, "content": message.content}
         for message in messages[-12:]
     ]
-    return await ollama_chat(safe_messages, chatbot_context(db))
+    return await generate_chat(safe_messages, chatbot_context(db))
 
 
 def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decimal):
@@ -125,17 +110,17 @@ async def advise_rooms(db: Session, data) -> dict:
     rooms = available_rooms(db, data.check_in, data.check_out, data.guests, data.budget)
     if not rooms:
         return {"message": "Không có phòng phù hợp và còn trống trong khoảng ngày đã chọn.", "rooms": []}
-    safe = [{"number": r.number, "type": r.room_type.name, "capacity": r.room_type.capacity, "price": float(r.room_type.nightly_rate), "amenities": r.room_type.amenities} for r in rooms]
-    prompt = f"Nhu cầu: {data.guests} khách, ngân sách {data.budget}/đêm, từ {data.check_in} đến {data.check_out}, tiện ích: {data.amenities or 'không yêu cầu'}. Danh sách phòng trống: {json.dumps(safe, ensure_ascii=False)}"
-    return {"message": await ollama(prompt, ROOM_SYSTEM), "rooms": safe[:3]}
+    safe = [{"number": sanitize_free_text(r.number), "type": sanitize_free_text(r.room_type.name), "capacity": r.room_type.capacity, "price": float(r.room_type.nightly_rate), "amenities": sanitize_free_text(r.room_type.amenities)} for r in rooms]
+    prompt = f"Nhu cầu: {data.guests} khách, ngân sách {data.budget}/đêm, từ {data.check_in} đến {data.check_out}, tiện ích: {sanitize_free_text(data.amenities) or 'không yêu cầu'}. Danh sách phòng trống: {json.dumps(safe, ensure_ascii=False)}"
+    return {"message": await generate_text(prompt, ROOM_SYSTEM), "rooms": safe[:3]}
 
 
 async def booking_email(db: Session, booking_id: int, kind: str) -> str:
     booking = db.get(Booking, booking_id)
     if not booking:
         raise HTTPException(404, "Không tìm thấy đặt phòng")
-    safe = {"customer_name": booking.customer.full_name, "booking_code": booking.code, "room": booking.room.number, "room_type": booking.room.room_type.name, "check_in": str(booking.check_in), "check_out": str(booking.check_out), "status": booking.status.value}
-    return await ollama(f"Loại email: {kind}. Dữ liệu đặt phòng: {json.dumps(safe, ensure_ascii=False)}", EMAIL_SYSTEM)
+    safe = {"customer_name": sanitize_free_text(booking.customer.full_name), "booking_code": booking.code, "room": sanitize_free_text(booking.room.number), "room_type": sanitize_free_text(booking.room.room_type.name), "check_in": str(booking.check_in), "check_out": str(booking.check_out), "status": booking.status.value}
+    return await generate_text(f"Loại email: {kind}. Dữ liệu đặt phòng: {json.dumps(safe, ensure_ascii=False)}", EMAIL_SYSTEM)
 
 
 async def ai_report(db: Session) -> str:
@@ -144,4 +129,4 @@ async def ai_report(db: Session) -> str:
     revenue = db.scalar(select(func.coalesce(func.sum(Invoice.paid_amount), 0))) or 0
     bookings = db.scalar(select(func.count(Booking.id)).where(Booking.status != BookingStatus.cancelled)) or 0
     data = {"total_rooms": total_rooms, "occupied_rooms": occupied, "occupancy_percent": round(occupied / total_rooms * 100, 1) if total_rooms else 0, "paid_revenue": float(revenue), "active_bookings": bookings}
-    return await ollama(f"Số liệu hiện tại: {json.dumps(data, ensure_ascii=False)}", REPORT_SYSTEM)
+    return await generate_text(f"Số liệu hiện tại: {json.dumps(data, ensure_ascii=False)}", REPORT_SYSTEM)

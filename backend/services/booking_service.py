@@ -1,4 +1,4 @@
-from backend.models import Booking, BookingStatus, Room, RoomStatus
+from backend.models import Booking, BookingStatus, BookingStatusHistory, Room, RoomStatus
 from backend.schemas import BookingIn
 from backend.services.invoice_service import calculate_invoice
 from datetime import date
@@ -21,7 +21,7 @@ def room_is_available(db: Session, room_id: int, check_in: date, check_out: date
         query = query.where(Booking.id != exclude_id)
     return db.scalar(query.limit(1)) is None
 
-def create_booking(db: Session, data: BookingIn) -> Booking:
+def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) -> Booking:
     room = db.execute(select(Room).where(Room.id == data.room_id).with_for_update()).scalar_one_or_none()
     if not room or room.status == RoomStatus.maintenance:
         raise HTTPException(400, "Phòng không tồn tại hoặc đang bảo trì")
@@ -31,6 +31,8 @@ def create_booking(db: Session, data: BookingIn) -> Booking:
         raise HTTPException(409, "Phòng đã có lịch trùng trong khoảng ngày này")
     booking = Booking(code=f"BK-{uuid4().hex[:8].upper()}", **data.model_dump())
     db.add(booking)
+    db.flush()
+    db.add(BookingStatusHistory(booking_id=booking.id, to_status=BookingStatus.confirmed, changed_by=actor_id))
     db.commit()
     db.refresh(booking)
     return booking
@@ -39,7 +41,7 @@ def create_booking(db: Session, data: BookingIn) -> Booking:
 def bookings(db: Session):
     return db.scalars(select(Booking).options(selectinload(Booking.customer), selectinload(Booking.room)).order_by(Booking.created_at.desc())).all()
 
-def booking_action(booking_id: int, action: str, db: Session):
+def booking_action(booking_id: int, action: str, db: Session, actor_id: int | None = None):
     booking = db.get(Booking, booking_id)
     if not booking:
         raise HTTPException(404, 'Không tìm thấy đặt phòng')
@@ -49,8 +51,10 @@ def booking_action(booking_id: int, action: str, db: Session):
     expected, target, room_status = transitions[action]
     if booking.status != expected:
         raise HTTPException(409, 'Trạng thái đặt phòng không phù hợp')
+    previous = booking.status
     booking.status, booking.room.status = (target, room_status)
-    db.commit()
+    db.add(BookingStatusHistory(booking_id=booking.id, from_status=previous, to_status=target, changed_by=actor_id))
     if action == 'check-out':
-        calculate_invoice(db, booking)
+        calculate_invoice(db, booking, commit=False)
+    db.commit()
     return {'ok': True, 'status': target}

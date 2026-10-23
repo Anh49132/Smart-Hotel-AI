@@ -30,3 +30,20 @@ python -m alembic upgrade head
 ```
 
 Ứng dụng vẫn giữ `create_all` lúc khởi động để tương thích cách chạy demo cũ; nó không cập nhật các bảng đã tồn tại. Với database quản lý bằng Alembic, chạy migration trước khi khởi động ứng dụng.
+
+## Nâng cấp lên revision 0002
+
+Revision `0002` bổ sung `booking_status_history`, `payments` và `ai_results`. Với database đã ở `0001`, sao lưu trước rồi chạy `python -m alembic upgrade head`. Những thanh toán và chuyển trạng thái phát sinh trước `0002` chỉ còn số tổng hợp/trạng thái hiện tại; migration không thể dựng lại đầy đủ lịch sử cũ.
+
+Với SQLite đang chạy, dừng ứng dụng trước khi sao lưu hoặc khôi phục. Có thể dùng Python để tạo bản sao nhất quán:
+
+```python
+import sqlite3
+source = sqlite3.connect("data/hotel.db")
+backup = sqlite3.connect("data/hotel.backup.db")
+source.backup(backup)
+backup.close()
+source.close()
+```
+
+Để khôi phục, sao chép `data/hotel.backup.db` thành `data/hotel.db` khi ứng dụng đã dừng; giữ riêng bản hiện tại nếu cần đối chiếu. Chạy `python -m alembic current` để kiểm tra phiên bản sau khôi phục. Với MySQL, dùng công cụ sao lưu/khôi phục của MySQL và tài khoản có quyền phù hợp.

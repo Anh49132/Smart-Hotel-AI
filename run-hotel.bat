@@ -53,8 +53,10 @@ if not exist ".env" (
   >.env echo APP_NAME=Lotus Hotel AI
   >>.env echo SECRET_KEY=local-development-secret-change-me
   >>.env echo DATABASE_URL=sqlite:///./data/hotel.db
-  >>.env echo OLLAMA_URL=http://localhost:11434
-  >>.env echo OLLAMA_MODEL=qwen2.5
+  >>.env echo GEMINI_API_KEY=
+  >>.env echo GEMINI_MODEL=gemini-3.5-flash-lite
+  >>.env echo GEMINI_TIMEOUT_SECONDS=60
+  >>.env echo GEMINI_MAX_OUTPUT_TOKENS=2048
   >>.env echo ACCESS_TOKEN_EXPIRE_MINUTES=480
 )
 

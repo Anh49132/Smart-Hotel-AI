@@ -1,0 +1,26 @@
+<button id="chatLauncher" class="chat-launcher" type="button" aria-label="Mở chatbot AI" aria-controls="chatWindow" aria-expanded="false" title="Chatbot AI">
+  <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+</button>
+<section id="chatWindow" class="chat-window" role="dialog" aria-modal="false" aria-labelledby="chatTitle" data-user-id="{{user.id}}" data-user-initial="{{user.full_name[0]}}" hidden>
+  <div class="chatbot-head">
+    <div class="d-flex align-items-center gap-2">
+      <span class="chatbot-logo"><i class="bi bi-stars" aria-hidden="true"></i></span>
+      <div><h4 id="chatTitle" class="mb-0">Trợ lý Lotus AI</h4><small>Hỗ trợ nghiệp vụ khách sạn</small></div>
+    </div>
+    <div class="d-flex gap-1">
+      <button id="clearChat" class="chat-icon-btn" type="button" title="Xóa hội thoại" aria-label="Xóa hội thoại"><i class="bi bi-trash3"></i></button>
+      <button id="closeChat" class="chat-icon-btn" type="button" title="Đóng chat" aria-label="Đóng chat"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
+  <div class="chat-suggestions" aria-label="Câu hỏi gợi ý">
+    <button type="button" data-chat-suggestion="Hiện có những phòng trống nào và giá bao nhiêu?">Phòng đang trống</button>
+    <button type="button" data-chat-suggestion="Khách sạn đang có những dịch vụ nào?">Dịch vụ</button>
+    <button type="button" data-chat-suggestion="Hướng dẫn tôi quy trình nhận phòng và trả phòng.">Quy trình lưu trú</button>
+  </div>
+  <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
+  <form id="chatForm" class="chat-composer">
+    <textarea id="chatInput" class="form-control" rows="2" maxlength="1500" placeholder="Nhập câu hỏi..." aria-label="Câu hỏi cho trợ lý AI" required></textarea>
+    <button id="chatSend" class="btn btn-primary" type="submit" aria-label="Gửi tin nhắn" title="Gửi tin nhắn"><i class="bi bi-send-fill"></i></button>
+  </form>
+  <small class="chat-note">Nội dung chat được gửi đến Google Gemini. Không nhập dữ liệu nhạy cảm. AI chỉ tư vấn; hãy kiểm tra kết quả.</small>
+</section>

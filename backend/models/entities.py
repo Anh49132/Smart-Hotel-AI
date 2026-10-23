@@ -2,7 +2,7 @@ from core.database import Base
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Boolean, Date, DateTime, Enum as SQLEnum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class Role(str, Enum):
@@ -90,6 +90,7 @@ class Booking(Base):
     room: Mapped[Room] = relationship()
     service_usages: Mapped[list["ServiceUsage"]] = relationship(back_populates="booking", cascade="all, delete-orphan")
     invoice: Mapped["Invoice"] = relationship(back_populates="booking", uselist=False)
+    status_history: Mapped[list["BookingStatusHistory"]] = relationship(back_populates="booking", order_by="BookingStatusHistory.changed_at")
 
 
 class HotelService(Base):
@@ -125,3 +126,39 @@ class Invoice(Base):
     payment_status: Mapped[PaymentStatus] = mapped_column(SQLEnum(PaymentStatus), default=PaymentStatus.unpaid)
     issued_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     booking: Mapped[Booking] = relationship(back_populates="invoice")
+    payments: Mapped[list["Payment"]] = relationship(back_populates="invoice", order_by="Payment.paid_at")
+
+
+class BookingStatusHistory(Base):
+    __tablename__ = "booking_status_history"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), index=True)
+    from_status: Mapped[BookingStatus] = mapped_column(SQLEnum(BookingStatus), nullable=True)
+    to_status: Mapped[BookingStatus] = mapped_column(SQLEnum(BookingStatus))
+    changed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    booking: Mapped[Booking] = relationship(back_populates="status_history")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    __table_args__ = (CheckConstraint("amount > 0", name="ck_payments_positive_amount"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    invoice_id: Mapped[int] = mapped_column(ForeignKey("invoices.id"), index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    paid_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    paid_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    invoice: Mapped[Invoice] = relationship(back_populates="payments")
+
+
+class AIResult(Base):
+    __tablename__ = "ai_results"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(30), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), nullable=True)
+    review_status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    generated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    reviewed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

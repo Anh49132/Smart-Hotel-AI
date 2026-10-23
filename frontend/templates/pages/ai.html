@@ -3,18 +3,19 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <p class="eyebrow">POWERED BY OLLAMA</p>
+    <p class="eyebrow">POWERED BY GEMINI</p>
     <h1>Trợ lý Lotus AI</h1>
-    <p>Chỉ dữ liệu nghiệp vụ cần thiết được gửi đến mô hình local.</p>
+    <p>Dữ liệu nghiệp vụ cần thiết được gửi đến Google Gemini để tạo nội dung. Không nhập giấy tờ, mật khẩu hoặc thông tin thanh toán cá nhân.</p>
   </div>
-  <span class="status available"><i class="bi bi-shield-check me-1"></i>Dữ liệu local</span>
+  <span class="status"><i class="bi bi-cloud me-1"></i>Google Gemini</span>
 </div>
 
 <div class="row g-4">
   <div class="col-xl-7">
+    {% if user.role.value in ['admin', 'receptionist'] %}
     <div class="panel">
       <h4><i class="bi bi-stars text-primary me-2"></i>Tư vấn phòng phù hợp</h4>
-      <p class="text-secondary">AI chỉ lựa chọn từ danh sách phòng còn trống thực tế.</p>
+      <p class="text-secondary">AI chỉ lựa chọn từ danh sách phòng còn trống thực tế. Kiểm tra lại gợi ý trước khi dùng.</p>
       <form id="adviceForm" class="row g-3">
         <div class="col-md-6"><label class="form-label">Ngày nhận</label><input name="check_in" type="date" class="form-control" required></div>
         <div class="col-md-6"><label class="form-label">Ngày trả</label><input name="check_out" type="date" class="form-control" required></div>
@@ -25,13 +26,15 @@
       </form>
       <div id="aiResult" class="ai-result d-none"></div>
     </div>
+    {% endif %}
   </div>
 
   <div class="col-xl-5">
+    {% if user.role.value in ['admin', 'receptionist'] %}
     <div class="panel mb-4">
       <span class="stat-icon purple float-end"><i class="bi bi-envelope-paper"></i></span>
       <h4>Soạn email thông minh</h4>
-      <p class="text-secondary">Xác nhận, hủy phòng hoặc nhắc thanh toán.</p>
+      <p class="text-secondary">Xác nhận, hủy phòng hoặc nhắc thanh toán. Email AI là bản nháp cần kiểm tra trước khi gửi.</p>
       <form id="emailForm">
         <label class="form-label">Đặt phòng</label>
         <select class="form-select mb-3" name="booking_id" required>
@@ -49,6 +52,8 @@
       <div id="emailResult" class="ai-result d-none"></div>
       <button id="copyEmail" class="btn btn-sm btn-light border mt-2 d-none"><i class="bi bi-copy me-1"></i>Sao chép</button>
     </div>
+    {% endif %}
+    {% if user.role.value in ['admin', 'accountant'] %}
     <div class="ai-card">
       <span class="ai-orb"><i class="bi bi-graph-up-arrow"></i></span>
       <small>PHÂN TÍCH KINH DOANH</small>
@@ -57,50 +62,34 @@
       <button id="reportBtn" class="btn btn-light w-100">Tạo báo cáo</button>
       <div id="reportResult" class="ai-result ai-result-dark d-none"></div>
     </div>
+    {% endif %}
   </div>
 </div>
 
-<section class="panel chatbot-panel mt-4" aria-labelledby="chatTitle">
-  <div class="chatbot-head">
-    <div class="d-flex align-items-center gap-3">
-      <span class="chatbot-logo"><i class="bi bi-chat-dots-fill"></i></span>
-      <div>
-        <h4 id="chatTitle" class="mb-1">Chatbot nghiệp vụ khách sạn</h4>
-        <p class="text-secondary mb-0">Hỏi về phòng, giá, dịch vụ, tình trạng vận hành hoặc cách sử dụng hệ thống.</p>
-      </div>
-    </div>
-    <button id="clearChat" class="btn btn-sm btn-light border" type="button"><i class="bi bi-trash3 me-1"></i>Xóa hội thoại</button>
+{% if user.role.value in ['admin', 'accountant'] %}
+<section class="panel mt-4" aria-labelledby="reviewTitle">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 id="reviewTitle" class="mb-0">Duyệt kết quả AI</h4>
+    <button id="refreshReviews" type="button" class="btn btn-sm btn-light border" title="Tải lại danh sách"><i class="bi bi-arrow-clockwise"></i></button>
   </div>
-
-  <div class="chat-suggestions" aria-label="Câu hỏi gợi ý">
-    <button type="button" data-chat-suggestion="Hiện có những phòng trống nào và giá bao nhiêu?">Phòng đang trống</button>
-    <button type="button" data-chat-suggestion="Khách sạn đang có những dịch vụ nào?">Danh sách dịch vụ</button>
-    <button type="button" data-chat-suggestion="Hướng dẫn tôi quy trình nhận phòng và trả phòng.">Quy trình lưu trú</button>
-    <button type="button" data-chat-suggestion="Tóm tắt tình hình vận hành khách sạn hiện tại.">Tóm tắt vận hành</button>
-  </div>
-
-  <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
-
-  <form id="chatForm" class="chat-composer">
-    <textarea id="chatInput" class="form-control" rows="2" maxlength="1500" placeholder="Nhập câu hỏi cho Lotus AI..." required></textarea>
-    <button id="chatSend" class="btn btn-primary" type="submit" aria-label="Gửi tin nhắn"><i class="bi bi-send-fill"></i><span>Gửi</span></button>
-  </form>
-  <small class="chat-note"><i class="bi bi-info-circle me-1"></i>Chatbot chỉ tư vấn và không tự thay đổi dữ liệu. Nhấn Enter để gửi, Shift + Enter để xuống dòng.</small>
+  <div id="aiReviewList" class="d-grid gap-3" aria-live="polite">Đang tải...</div>
 </section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-const today=new Date(),tomorrow=new Date(Date.now()+86400000),after=new Date(Date.now()+3*86400000);
-document.querySelector('[name=check_in]').value=tomorrow.toISOString().slice(0,10);
-document.querySelector('[name=check_out]').value=after.toISOString().slice(0,10);
-
 async function aiCall(button,work){
   button.disabled=true;
   const old=button.innerHTML;
   button.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý';
   try{await work()}finally{button.disabled=false;button.innerHTML=old}
 }
+
+{% if user.role.value in ['admin', 'receptionist'] %}
+const today=new Date(),tomorrow=new Date(Date.now()+86400000),after=new Date(Date.now()+3*86400000);
+document.querySelector('[name=check_in]').value=tomorrow.toISOString().slice(0,10);
+document.querySelector('[name=check_out]').value=after.toISOString().slice(0,10);
 
 document.getElementById('adviceForm').onsubmit=e=>{
   e.preventDefault();
@@ -129,56 +118,43 @@ document.getElementById('copyEmail').onclick=async()=>{
   try{await navigator.clipboard.writeText(document.getElementById('emailResult').textContent);showToast('Đã sao chép email')}
   catch(e){showToast('Trình duyệt không cho phép sao chép tự động',false)}
 };
+{% endif %}
 
+{% if user.role.value in ['admin', 'accountant'] %}
 document.getElementById('reportBtn').onclick=e=>aiCall(e.currentTarget,async()=>{
   const el=document.getElementById('reportResult');el.classList.remove('d-none');el.textContent='Đang tổng hợp số liệu...';
   try{const j=await apiRequest('/api/ai/report');el.textContent=j.content}catch(err){el.textContent=err.message}
 });
+{% endif %}
 
-const chatStorageKey='lotus-ai-chat-v1-{{user.id}}';
-const chatBox=document.getElementById('chatMessages');
-const chatForm=document.getElementById('chatForm');
-const chatInput=document.getElementById('chatInput');
-const chatSend=document.getElementById('chatSend');
-let chatHistory=[];
-
-try{
-  const stored=JSON.parse(sessionStorage.getItem(chatStorageKey)||'[]');
-  if(Array.isArray(stored))chatHistory=stored.filter(item=>['user','assistant'].includes(item.role)&&typeof item.content==='string').slice(-12);
-}catch(e){sessionStorage.removeItem(chatStorageKey)}
-
-function saveChat(){sessionStorage.setItem(chatStorageKey,JSON.stringify(chatHistory.slice(-12)))}
-
-function chatBubble(role,content,typing=false){
-  const row=document.createElement('div');row.className=`chat-message ${role}`;
-  const avatar=document.createElement('span');avatar.className='chat-avatar';avatar.innerHTML=role==='assistant'?'<i class="bi bi-stars"></i>':'{{user.full_name[0]}}';
-  const bubble=document.createElement('div');bubble.className='chat-bubble';
-  if(typing){bubble.classList.add('chat-typing');bubble.innerHTML='<span></span><span></span><span></span>'}else{bubble.textContent=content}
-  row.append(avatar,bubble);chatBox.appendChild(row);chatBox.scrollTop=chatBox.scrollHeight;return row;
-}
-
-function renderChat(){
-  chatBox.replaceChildren();
-  if(!chatHistory.length)chatBubble('assistant','Xin chào! Tôi có thể tra cứu phòng, giá, dịch vụ, tóm tắt vận hành và hướng dẫn quy trình trên hệ thống.');
-  chatHistory.forEach(message=>chatBubble(message.role,message.content));
-}
-
-async function sendChat(text){
-  const content=text.trim();if(!content||chatSend.disabled)return;
-  chatHistory.push({role:'user',content});chatHistory=chatHistory.slice(-12);saveChat();renderChat();chatInput.value='';
-  chatSend.disabled=true;chatInput.disabled=true;const typing=chatBubble('assistant','',true);
+{% if user.role.value in ['admin', 'accountant'] %}
+const reviewList=document.getElementById('aiReviewList');
+async function loadReviews(){
   try{
-    const response=await apiRequest('/api/ai/chat',{method:'POST',body:JSON.stringify({messages:chatHistory})});
-    typing.remove();chatHistory.push({role:'assistant',content:response.content});chatHistory=chatHistory.slice(-12);saveChat();renderChat();
-  }catch(error){
-    typing.remove();chatBubble('assistant',error.message);showToast(error.message,false);
-  }finally{chatSend.disabled=false;chatInput.disabled=false;chatInput.focus()}
+    const items=await apiRequest('/api/ai/results');reviewList.replaceChildren();
+    if(!items.length){reviewList.textContent='Chưa có kết quả AI.';return}
+    for(const item of items){
+      const row=document.createElement('div');row.className='border-top pt-3';
+      const head=document.createElement('div');head.className='d-flex justify-content-between gap-2 mb-2';
+      const label=document.createElement('strong');label.textContent=`#${item.id} · ${item.kind} · ${new Date(item.created_at+'Z').toLocaleString('vi-VN')}`;
+      const status=document.createElement('span');status.textContent={pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[item.review_status]||item.review_status;
+      head.append(label,status);
+      const content=document.createElement('div');content.className='mb-2';content.style.whiteSpace='pre-wrap';content.textContent=item.content;
+      row.append(head,content);
+      if(item.review_status==='pending'){
+        for(const [approved,title,icon] of [[true,'Duyệt','bi-check-lg'],[false,'Từ chối','bi-x-lg']]){
+          const button=document.createElement('button');button.type='button';button.className='btn btn-sm btn-outline-primary me-2';button.title=title;
+          button.setAttribute('aria-label',title);button.innerHTML=`<i class="bi ${icon}"></i>`;
+          button.onclick=async()=>{button.disabled=true;try{await apiRequest(`/api/ai/results/${item.id}/review?approved=${approved}`,{method:'POST'});showToast(approved?'Đã duyệt':'Đã từ chối');await loadReviews()}catch(err){showToast(err.message,false);button.disabled=false}};
+          row.append(button);
+        }
+      }
+      reviewList.append(row);
+    }
+  }catch(err){reviewList.textContent=err.message}
 }
-
-chatForm.onsubmit=e=>{e.preventDefault();sendChat(chatInput.value)};
-chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatForm.requestSubmit()}});
-document.querySelectorAll('[data-chat-suggestion]').forEach(button=>button.onclick=()=>sendChat(button.dataset.chatSuggestion));
-document.getElementById('clearChat').onclick=()=>{chatHistory=[];sessionStorage.removeItem(chatStorageKey);renderChat();chatInput.focus();showToast('Đã xóa hội thoại')};
-renderChat();
+document.getElementById('refreshReviews').onclick=loadReviews;
+loadReviews();
+{% endif %}
 </script>
 {% endblock %}
