@@ -102,3 +102,11 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Kết quả cuối C07–C12: PostgreSQL 117 passed; SQLite 115 passed/2 skipped. Hai session thực kiểm tra đổi vào cùng phòng, lịch rút ngắn dưới tiền đã thu rollback; có test privacy ba vai trò, sequence fixture PostgreSQL được sửa sau khi phát hiện explicit ID không tăng sequence.
 - Browser QA dùng DB dữ liệu giả riêng: ô lịch điền sẵn phòng 304/ngày, preview rồi đổi phòng thành công; phát sinh việc phòng 301 và đi hết start→complete→inspect; lịch sử khách 1 đã ở + 1 đang ở, giấy tờ che; bộ lọc bàn lễ tân; tài khoản housekeeping chỉ thấy việc được giao, không có menu khách/hóa đơn/AI.
 - DB local backup hotel.before-c07-c12.20261023-124227.db, nâng 0007→0012, giữ số dòng bảng cũ và tổng tiền hóa đơn, Alembic check/FK/integrity đạt. Không triển khai Render, không gọi Gemini thật, không gửi email trong đợt này.
+
+
+## C13 — Thu cọc và sổ thu tiền
+
+- Thêm money_entries làm sổ chuẩn; Payment cũ chỉ là mirror tương thích, không cộng cùng ledger. Thu cọc trước hóa đơn, khi lập/checkout đối trừ đúng số đã nhận. Phương thức cash/bank_transfer, mã tham chiếu và người thu; không có trường số thẻ/tài khoản.
+- Các API ghi tiền yêu cầu request_key, body cùng khóa trả cùng biên nhận; đổi nội dung với cùng khóa bị chặn. Khóa phòng→booking→invoice theo một thứ tự; quá số dư bị từ chối cả khi thu đồng thời.
+- Migration nhập Payment hiện có một lần, chênh paid_amount chưa có lịch sử thành legacy_opening có nhãn thời điểm thực không biết. Nếu Payment lớn hơn paid_amount thì dừng để đối chiếu, không tự bịa khoản hoàn. Downgrade từ chối bỏ dữ liệu giao dịch mới.
+- Phát hiện wildcard action route nuốt đường thu cọc; tách các route nhận/trả/hủy rõ ràng. UI giữ mã chống lặp của lần gửi và chặn bấm lặp. Test cọc một phần/đối trừ, retry, cùng khóa đồng thời, quá số dư và migration số dư cũ; toàn bộ hồi quy được ghi cuối đợt.

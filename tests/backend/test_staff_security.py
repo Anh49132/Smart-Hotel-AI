@@ -79,7 +79,7 @@ def test_role_matrix(client, db, role, users_code, booking_code, payment_code):
     client.cookies.set('access_token',token(user))
     assert client.get('/api/users').status_code == users_code
     assert client.post('/api/bookings/99999/check-in').status_code == booking_code
-    assert client.post('/api/invoices/99999/payments',json={'amount':100}).status_code == payment_code
+    assert client.post('/api/invoices/99999/payments',json={'amount':100,'request_key':'role-check-payment'}).status_code == payment_code
     for page in ('/rooms','/customers','/bookings','/services','/invoices','/account'):
         result = client.get(page)
         assert result.status_code == 200

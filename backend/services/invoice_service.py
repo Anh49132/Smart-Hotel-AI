@@ -6,6 +6,7 @@ from backend.models import Booking, BookingStatus, Invoice, Payment, PaymentStat
 from backend.schemas import PaymentIn
 from .transactions import lock_room, write_transaction
 from .rates_service import booked_room_amount
+from .money_service import net_received
 
 
 def money(value):
@@ -38,7 +39,9 @@ def calculate_invoice(db: Session, booking: Booking, discount: Decimal | None = 
     if invoice is not None and invoice.paid_amount > total:
         raise HTTPException(400, "Tổng hóa đơn không được thấp hơn số tiền đã thanh toán")
     if invoice is None:
-        invoice = Invoice(booking_id=booking.id, paid_amount=Decimal(0))
+        paid=net_received(db,booking.id)
+        if paid>total:raise HTTPException(400,'Tiền đã thu lớn hơn tổng mới; cần xử lý hoàn/điều chỉnh')
+        invoice = Invoice(booking_id=booking.id, paid_amount=paid)
     invoice.surcharge_amount = surcharge_amount
     invoice.room_amount, invoice.service_amount, invoice.discount, invoice.total = room_amount, service_amount, discount, total
     invoice.payment_status = PaymentStatus.paid if invoice.paid_amount == total else (PaymentStatus.partial if invoice.paid_amount else PaymentStatus.unpaid)
@@ -50,18 +53,7 @@ def calculate_invoice(db: Session, booking: Booking, discount: Decimal | None = 
 
 
 def register_payment(db: Session, invoice: Invoice, amount: Decimal, actor_id: int | None = None) -> Invoice:
-    if amount <= 0 or amount != money(amount):
-        raise HTTPException(400, "Số tiền phải lớn hơn 0 và có tối đa hai chữ số thập phân")
-    if invoice.booking.status in (BookingStatus.cancelled, BookingStatus.no_show):
-        raise HTTPException(409, "Không thu tiền lưu trú cho đặt phòng đã hủy")
-    if invoice.paid_amount + amount > invoice.total:
-        raise HTTPException(400, "Số tiền thanh toán vượt tổng hóa đơn")
-    invoice.paid_amount += amount
-    invoice.payment_status = PaymentStatus.paid if invoice.paid_amount == invoice.total else PaymentStatus.partial
-    db.add(Payment(invoice_id=invoice.id, amount=amount, paid_by=actor_id))
-    db.commit()
-    db.refresh(invoice)
-    return invoice
+    return pay(invoice.id,PaymentIn(amount=amount),db,actor_id)
 
 
 def invoice(booking_id: int, discount: Decimal | None, db: Session):
@@ -77,10 +69,11 @@ def invoice(booking_id: int, discount: Decimal | None, db: Session):
 
 
 def pay(invoice_id: int, data: PaymentIn, db: Session, actor_id: int | None = None):
-    with write_transaction(db):
-        if db.get_bind().dialect.name == "sqlite":
-            db.execute(update(Invoice).where(Invoice.id == invoice_id).values(id=Invoice.id).execution_options(synchronize_session=False))
-        item = db.scalar(select(Invoice).where(Invoice.id == invoice_id).with_for_update().execution_options(populate_existing=True))
-        if not item:
-            raise HTTPException(404, "Không tìm thấy hóa đơn")
-        return register_payment(db, item, data.amount, actor_id)
+    from .money_service import receipt
+    from backend.schemas.inputs import ReceiptIn
+    from uuid import uuid4
+    booking_id=db.scalar(select(Invoice.booking_id).where(Invoice.id==invoice_id))
+    if booking_id is None:raise HTTPException(404,'Không tìm thấy hóa đơn')
+    payload=ReceiptIn(**{**data.model_dump(),'request_key':data.request_key or uuid4().hex,'kind':'payment'})
+    receipt(db,booking_id,payload,actor_id)
+    return db.get(Invoice,invoice_id)

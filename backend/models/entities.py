@@ -245,6 +245,21 @@ class Payment(Base):
     invoice: Mapped[Invoice] = relationship(back_populates="payments")
 
 
+class MoneyEntry(Base):
+    __tablename__='money_entries'
+    __table_args__=(UniqueConstraint('booking_id','request_key',name='uq_money_request'),CheckConstraint('amount > 0',name='ck_money_positive'),CheckConstraint("kind IN ('deposit','payment','refund','legacy_opening')",name='ck_money_kind'),CheckConstraint("method IN ('cash','bank_transfer','unknown')",name='ck_money_method'))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    booking_id: Mapped[int]=mapped_column(ForeignKey('bookings.id'),index=True)
+    payment_id: Mapped[int]=mapped_column(ForeignKey('payments.id'),unique=True,nullable=True)
+    amount: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    kind: Mapped[str]=mapped_column(String(20))
+    method: Mapped[str]=mapped_column(String(20))
+    reference: Mapped[str]=mapped_column(String(100),default='')
+    request_key: Mapped[str]=mapped_column(String(64))
+    actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'),nullable=True)
+    occurred_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+
+
 class AIResult(Base):
     __tablename__ = "ai_results"
     id: Mapped[int] = mapped_column(primary_key=True)

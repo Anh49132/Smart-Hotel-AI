@@ -123,6 +123,14 @@ class ServiceUsageIn(BaseModel):
 
 class PaymentIn(BaseModel):
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    method: Literal['cash','bank_transfer'] = 'cash'
+    reference: str = Field(default='',max_length=100)
+    request_key: Optional[str] = Field(default=None,min_length=8,max_length=64,pattern=r'^[A-Za-z0-9_-]+$')
+
+
+class ReceiptIn(PaymentIn):
+    request_key: str = Field(min_length=8,max_length=64,pattern=r'^[A-Za-z0-9_-]+$')
+    kind: Literal['deposit','payment'] = 'deposit'
 
 
 class RoomAdviceIn(BaseModel):

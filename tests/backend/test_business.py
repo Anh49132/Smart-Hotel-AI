@@ -70,7 +70,7 @@ def test_complete_stay_and_payment_flow(client, db):
     assert client.post(f"/api/bookings/{booking_id}/check-out").status_code == 200
     from backend.models import Invoice
     invoice = db.query(Invoice).filter_by(booking_id=booking_id).one()
-    payment = client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":float(invoice.total)})
+    payment = client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":float(invoice.total),"request_key":"full-stay-payment"})
     assert payment.status_code == 200
     assert payment.json()["payment_status"] == "paid"
     history = client.get(f"/api/bookings/{booking_id}/history").json()
@@ -80,7 +80,7 @@ def test_complete_stay_and_payment_flow(client, db):
     assert len(payments) == 1
     assert Decimal(str(payments[0]["amount"])) == invoice.total
     assert payments[0]["paid_by"] == 1
-    assert client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":1}).status_code == 400
+    assert client.post(f"/api/invoices/{invoice.id}/payments", json={"amount":1,"request_key":"extra-overpayment"}).status_code == 400
 
 
 def test_room_availability_endpoint(client):

@@ -1,3 +1,4 @@
+from .money_service import net_received,charge_total
 from .housekeeping_service import open_task, create_cleaning_task
 import json
 from decimal import Decimal, ROUND_HALF_UP
@@ -86,6 +87,8 @@ def change_booking(db, booking_id, data, actor_id, preview=False):
         booking.booked_nightly_rate=(total/len(nights)).quantize(Decimal('.01'),rounding=ROUND_HALF_UP)
         booking.booked_rate_source='nightly_snapshot'
         db.flush()
+        if booking.invoice is None and net_received(db,booking.id)>charge_total(db,booking):
+            raise HTTPException(400,'Tổng mới thấp hơn số đã thu; cần xử lý hoàn/điều chỉnh trước')
         if booking.invoice is not None:
             calculate_invoice(db,booking,commit=False)
         after = {'room_id':data.room_id,'check_in':str(data.check_in),'check_out':str(data.check_out),'room_total':str(total)}
