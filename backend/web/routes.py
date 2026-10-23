@@ -1,5 +1,6 @@
 from backend.dependencies import get_current_user, require_roles
-from backend.models import Role, RoomType, RatePlan
+from backend.models import Role, RoomType, RatePlan, User
+from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
 from core.hotel_time import hotel_today
@@ -35,7 +36,7 @@ def login(request: Request, username: str = Form(), password: str = Form(), db: 
     login_limiter.check(request.client.host if request.client else 'unknown', username)
     user = authenticate(db, username, password)
     if not user: return templates.TemplateResponse("pages/login.html", {"request": request, "error": "Sai tên đăng nhập hoặc mật khẩu"}, status_code=401)
-    response = RedirectResponse('/account' if user.must_change_password else '/', 303)
+    response = RedirectResponse('/account' if user.must_change_password else '/housekeeping' if user.role==Role.housekeeping else '/', 303)
     set_session_cookie(response, user)
     return response
 
@@ -51,6 +52,12 @@ def page_context(request, user, active, **extra): return {"request": request, "u
 @router.get('/account', response_class=HTMLResponse)
 def account_page(request: Request, user=Depends(get_current_user)):
     return templates.TemplateResponse('pages/account.html', page_context(request, user, 'account'))
+
+
+@router.get('/housekeeping', response_class=HTMLResponse)
+def housekeeping_page(request:Request,user=Depends(require_roles(Role.admin,Role.receptionist,Role.housekeeping)),db:Session=Depends(get_db)):
+    staff=db.scalars(select(User).where(User.role==Role.housekeeping,User.is_active.is_(True))).all() if user.role!=Role.housekeeping else []
+    return templates.TemplateResponse('pages/housekeeping.html',page_context(request,user,'housekeeping',tasks=list_tasks(db,user),staff=staff))
 
 
 @router.get("/", response_class=HTMLResponse)

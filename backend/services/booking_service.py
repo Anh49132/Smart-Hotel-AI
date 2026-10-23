@@ -1,3 +1,4 @@
+from .housekeeping_service import open_task, create_cleaning_task
 from backend.models import Booking, BookingNight, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus, RoomStay
 from .rates_service import lock_room_type, quote
 from backend.schemas import BookingIn
@@ -63,11 +64,12 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
             raise HTTPException(409, 'Đặt phòng đã có hóa đơn; cần xử lý điều chỉnh/hoàn tiền trước khi hủy')
         if action == 'check-in':
             other = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status == BookingStatus.checked_in, Booking.id != booking_id).limit(1))
-            if room.status != RoomStatus.available or other:
+            if room.status != RoomStatus.available or other or open_task(db,room_id):
                 raise HTTPException(409, 'Phòng chưa sẵn sàng nhận khách hoặc vẫn có khách đang lưu trú')
             room.status = RoomStatus.occupied
         elif action == 'check-out':
             room.status = RoomStatus.cleaning
+            create_cleaning_task(db,room_id)
         # Cancel changes reservations, not today's physical room state.
         db.add(BookingStatusHistory(booking_id=booking.id, from_status=expected, to_status=target, changed_by=actor_id))
         if action == 'check-out':

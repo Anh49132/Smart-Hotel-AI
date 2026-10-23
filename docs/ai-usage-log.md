@@ -70,3 +70,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - API/HTML lịch theo chặng phân phòng, ngày trả loại trừ; bộ lọc ngày/loại/tầng/số khách, phân trang 20 phòng và tối đa 31 ngày. Ô trống liên kết đặt phòng với ngày/phòng điền sẵn; mã lịch mở chi tiết lưu trú.
 - Giao diện cuộn ngang và cột/tiêu đề cố định, không triển khai kéo thả khi chưa có kiểm chứng xung đột tương đương. Filter phòng trống có tham số loại/tầng ở backend.
 - Nhóm test SQLite lịch + C07: 5 đạt, gồm sát biên, bộ lọc, trống và chưa đăng nhập. Kiểm thử tương tác browser và toàn bộ hồi quy ghi ở cuối đợt.
+
+
+## C09 — Buồng phòng và kiểm tra sẵn sàng
+
+- Thêm role housekeeping và task pending→in_progress→inspection→ready; checkout/đổi phòng tạo việc trong cùng transaction. Khóa phòng khi phân công/chuyển trạng thái, chỉ supervisor kiểm tra cuối, không cho đặt trạng thái sẵn sàng để bỏ qua việc chưa hoàn tất.
+- Housekeeping chỉ truy cập việc được giao và tài khoản cá nhân, không nhận khách/hóa đơn/AI. UI theo vai trò, admin cấp tài khoản buồng phòng. Migration giữ các phòng cleaning cũ dưới dạng pending, không dựng thời gian hoàn thành.
+- Test checkout→phân công→dọn→kiểm tra, chặn vượt quyền/API và render; kiểm tra enum PostgreSQL với migration roundtrip. Downgrade từ chối nếu còn tài khoản housekeeping thay vì làm mất dữ liệu vai trò.
