@@ -112,3 +112,10 @@ Admin mở **Loại phòng & bảng giá** (`/rates`) để sửa tên/tiện í
 Giá đặc biệt áp dụng từ ngày bắt đầu đến trước ngày kết thúc, ưu tiên hơn giá cuối tuần (thứ Bảy/Chủ nhật), sau đó mới dùng giá thường. Hai khoảng giá đặc biệt đang áp dụng không được trùng nhau. Bỏ chọn Áp dụng để ngừng chương trình. Booking mới lưu chi tiết giá từng đêm; sửa giá/tên chương trình sau đó không đổi tiền đã chốt. Đặt mới tối đa 365 đêm và tổng tiền phòng trong giới hạn hóa đơn. Danh sách phòng hiển thị giá trung bình/đêm kèm tổng tiền; AI dùng giá thực tế từng đêm để kiểm tra ngân sách.
 
 Chạy `python -m alembic upgrade head` để lên revision 0007 sau khi sao lưu DB. Booking legacy không được tự dựng giá đêm chưa từng lưu; xem docs/postgresql.md.
+
+
+## Chi tiết đặt phòng (C06)
+
+Nhấn mã đặt phòng từ Danh sách, Tổng quan hoặc Hóa đơn để mở `/bookings/{id}`. Trang hiển thị khách/liên hệ, ngày ở, giá đã chốt từng đêm, dịch vụ, dự tính hiện tại, hóa đơn và lịch sử trạng thái/người thao tác. Thời gian lịch sử hiển thị UTC. Mở trang không tự lập hoặc tính lại hóa đơn.
+
+Các nút nhận/trả/hủy/ghi dịch vụ dành cho admin/lễ tân theo trạng thái; kế toán/admin có thể lập/cập nhật hóa đơn tạm và ghi nhận tiền đã thu. Lịch sử từng khoản thu chỉ hiện cho kế toán/admin, lễ tân xem tổng đã thu/còn thiếu. Backend vẫn kiểm tra quyền và trạng thái cho mọi thao tác. Hóa đơn tạm được phân biệt với dự tính đã có dịch vụ mới. Dữ liệu legacy thiếu giá đêm/lịch sử hoặc chênh số thu so với ledger có thông báo đối chiếu, không tự tạo lịch sử giả.

@@ -2,6 +2,7 @@ from backend.dependencies import get_current_user, require_roles
 from backend.models import Role, RoomType, RatePlan
 from sqlalchemy import select
 from backend.services.auth_service import authenticate
+from backend.services.booking_detail_service import booking_detail, active_service_options
 from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, reports_page_context, rooms_page_context, services_page_context, users_page_context
 from core.config import FRONTEND_DIR
 from core.database import get_db
@@ -73,6 +74,12 @@ def bookings_page(request: Request, user=Depends(get_current_user), db: Session 
 @router.get("/customers", response_class=HTMLResponse)
 def customers_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     return templates.TemplateResponse('pages/customers.html', page_context(request, user, 'customers', **customers_page_context(db)))
+
+
+@router.get('/bookings/{booking_id}', response_class=HTMLResponse)
+def booking_detail_page(booking_id: int, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    detail = booking_detail(db, booking_id, user.role.value)
+    return templates.TemplateResponse('pages/booking_detail.html', page_context(request, user, 'bookings', detail=detail, services=active_service_options(db)))
 
 
 @router.get("/services", response_class=HTMLResponse)

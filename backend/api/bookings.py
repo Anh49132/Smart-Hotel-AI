@@ -1,4 +1,5 @@
-from backend.dependencies import require_roles
+from backend.dependencies import get_current_user, require_roles
+from backend.services.booking_detail_service import booking_detail
 from backend.models import Booking, BookingStatusHistory, Role
 from backend.schemas import BookingIn
 from backend.services.booking_service import booking_action as booking_action_service, bookings as bookings_service, create_booking
@@ -18,6 +19,11 @@ def bookings(db: Session = Depends(get_db)):
 @router.post("/bookings")
 def add_booking(data: BookingIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
     return create_booking(db, data, user.id)
+
+
+@router.get('/bookings/{booking_id}')
+def detail(booking_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    return booking_detail(db, booking_id, user.role.value)
 
 
 @router.post("/bookings/{booking_id}/{action}")
