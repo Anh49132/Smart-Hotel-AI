@@ -14,6 +14,7 @@ from .entities import (
     BookingStatusHistory,
     Payment,
     AIResult,
+    AIReviewEvent,
     RatePlan,
     BookingNight,
     RoomStay,

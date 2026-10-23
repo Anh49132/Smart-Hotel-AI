@@ -87,6 +87,9 @@ def test_email_uses_gemini_without_sensitive_customer_fields(client, db, transpo
     customer.email = "private@example.com"
     db.commit()
     booking = client.post("/api/bookings", json={"customer_id": 1, "room_id": 1, "check_in": "2030-11-01", "check_out": "2030-11-03", "guests": 2, "note": "PRIVATE_BOOKING_NOTE"}).json()
+    if kind=='cancellation':
+        from backend.models import Booking,BookingStatus
+        db.get(Booking,booking['id']).status=BookingStatus.cancelled;db.commit()
     response = client.post("/api/ai/email", json={"booking_id": booking["id"], "kind": kind})
     assert response.status_code == 200
     assert response.json()["content"] == TEXT

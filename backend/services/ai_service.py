@@ -123,11 +123,9 @@ async def advise_rooms(db: Session, data) -> dict:
 
 
 async def booking_email(db: Session, booking_id: int, kind: str) -> str:
-    booking = db.get(Booking, booking_id)
-    if not booking:
-        raise HTTPException(404, "Không tìm thấy đặt phòng")
-    safe = {"customer_name": sanitize_free_text(booking.customer.full_name), "booking_code": booking.code, "room": sanitize_free_text(booking.room.number), "room_type": sanitize_free_text(booking.room.room_type.name), "check_in": str(booking.check_in), "check_out": str(booking.check_out), "status": booking.status.value}
-    return await generate_text(f"Loại email: {kind}. Dữ liệu đặt phòng: {json.dumps(safe, ensure_ascii=False)}", EMAIL_SYSTEM)
+    from .email_service import draft_email
+    content,_=await draft_email(db,booking_id,kind)
+    return content
 
 
 async def ai_report(db: Session) -> str:

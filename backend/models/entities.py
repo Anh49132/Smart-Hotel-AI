@@ -284,12 +284,25 @@ class AIResult(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(30), index=True)
     content: Mapped[str] = mapped_column(Text)
+    email_kind: Mapped[str] = mapped_column(String(30),server_default='')
+    model_name: Mapped[str] = mapped_column(String(80),server_default='legacy/unknown')
+    prompt_version: Mapped[str] = mapped_column(String(40),server_default='legacy/unknown')
+    source_json: Mapped[str] = mapped_column(Text,server_default='{}')
     booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), nullable=True)
     review_status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     generated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     reviewed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     reviewed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class AIReviewEvent(Base):
+    __tablename__='ai_review_events'
+    id: Mapped[int]=mapped_column(primary_key=True)
+    result_id: Mapped[int]=mapped_column(ForeignKey('ai_results.id'),index=True)
+    actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    approved: Mapped[bool]=mapped_column(Boolean)
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
 
 
 class HotelPolicy(Base):
