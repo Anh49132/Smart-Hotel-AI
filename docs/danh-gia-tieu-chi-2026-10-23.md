@@ -1,5 +1,7 @@
 # Đánh giá đáp ứng đề tài AIA331 — Hệ thống quản lý khách sạn tích hợp AI
 
+> Đây là đánh giá đầu vào được giữ nguyên để đối chiếu lịch sử. Bản bàn giao sau C01–C24 xem [báo cáo kỹ thuật](technical-report.md), [ma trận minh chứng](traceability.md) và [nghiệm thu cuối](release-evidence.md). Không dùng các số test/trạng thái cũ bên dưới làm kết luận hiện tại.
+
 Ngày kiểm tra: **23/10/2026**. Phạm vi: mã nguồn và cấu hình hiện có trong workspace, SQLite mặc định, kiểm thử tự động, migration và Ollama local. Đây là kết quả kiểm tra kỹ thuật, không phải điểm chấm của giảng viên.
 
 **Cập nhật sau đánh giá:** theo yêu cầu chuyển nhà cung cấp, ứng dụng đã dùng Google Gemini thay Ollama. Bộ test sau chuyển đổi đạt **41/41**; thử API thật trên dữ liệu giả cho tư vấn phòng, email, báo cáo và chatbot đều trả HTTP 200. Các kết quả Ollama bên dưới là ghi nhận lịch sử trước chuyển đổi; xem README cho cấu hình AI hiện tại. Việc đổi nhà cung cấp không phải bằng chứng đã khắc phục các vấn đề đặt phòng, hóa đơn hoặc kiểm chứng đầu ra được nêu trong báo cáo.

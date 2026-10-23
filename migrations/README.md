@@ -29,7 +29,7 @@ python -m alembic revision --autogenerate -m "describe schema change"
 python -m alembic upgrade head
 ```
 
-Ứng dụng vẫn giữ `create_all` lúc khởi động để tương thích cách chạy demo cũ; nó không cập nhật các bảng đã tồn tại. Với database quản lý bằng Alembic, chạy migration trước khi khởi động ứng dụng.
+Development vẫn giữ `create_all` khi AUTO_CREATE_SCHEMA bật; nó không cập nhật các bảng đã tồn tại. Production tắt create_all/seed cũ và entrypoint `python -m scripts.start_server` chạy Alembic có khóa trước Uvicorn. Bản bàn giao ở revision 0022. Với database quản lý bằng Alembic, luôn nâng migration trước khi phục vụ HTTP.
 
 ## Nâng cấp lên revision 0002
 

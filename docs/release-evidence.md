@@ -7,4 +7,5 @@
 - Lỗi transfer bảng demo_seeds dùng khóa tự nhiên được phát hiện trong full suite, sửa và thêm dữ liệu regression trước vòng chạy cuối.
 - SQLite local backup `data/hotel.before-c19-c24.20261023-195346.db`, nâng 0016→0022; số dòng bảng cũ/từng giá trị hóa đơn, integrity/FK giữ đúng. Backup chứa dữ liệu riêng và không được commit.
 - Browser desktop/mobile và PDF: docs/demo-data-and-ux.md, docs/images, output/pdf. AI live: bốn request dữ liệu giả trong ai-live-evaluation-2026-10-23.json.
-- Docker/CI/Render được ghi trạng thái thực tại render-release.md sau triển khai; kết quả test local không thay kết quả cloud.
+- Docker build và test SQLite/PostgreSQL trên CI Linux đã success ở hai run được ghi trong render-release.md; kết quả local không thay kết quả cloud.
+- Render artifact đầu đã live, smoke thật đạt 18 mục gồm Gemini và PDF; UI online và persistence qua redeploy ghi riêng trong render-release.md, render-smoke-evidence.json và render-persistence-evidence.json.

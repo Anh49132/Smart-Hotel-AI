@@ -188,3 +188,13 @@ Nghiệm thu mã C05+C06: PostgreSQL 100 test đạt; SQLite 98 đạt/2 bỏ qu
 - Browser QA với DB riêng: xem bảng kê, preview hủy, chốt ca và báo cáo; kiểm tra bảng hẹp cho cuộn ngang, chưa hoàn tất UX đa thiết bị hoặc máy in/PDF thực tế.
 - Backup local `data/hotel.before-c13-c18.20261023-184250.db`; schema 0012→0016, Alembic check, integrity/FK đạt; số dòng bảng cũ/giá trị hóa đơn giữ nguyên, MoneyEntry đối chiếu khớp paid_amount. Không chuyển dữ liệu lên Render trong đợt này.
 - Số thu cũ không biết ngày để legacy_opening, không tính dòng tiền; không gán ca giả. Công suất C17 là theo lịch, số dư là hiện tại; email/báo cáo AI nâng cao và các hạng mục cuối vẫn theo C19 trở đi.
+
+## Bàn giao C19–C24 và R02 — 23/10/2026
+
+- Anh49132: C19 booking-emails, C21 release-tests, C23 deployment.
+- khanhhoang1012006-svg: C20 ai-reports, C22 demo-and-ux, R02 render-release và C24 defense-docs. R01 của Anh từ trước cộng R02 của Khánh cân bằng kế hoạch 26 hạng mục, 13 mỗi người; merge commits được đếm riêng.
+- Các feature được push bằng credential đúng tài khoản đã lưu, giữ author/committer tương ứng; không sửa tác giả các commit đã push. Feature merge dev, phát hành dev→main qua PR merge để giữ lịch sử. Agent hỗ trợ triển khai, chưa xác nhận review/diễn tập của sinh viên.
+- PostgreSQL local 165 test đạt, SQLite 163 đạt/2 skip; GitHub Linux CI cả hai DB và Docker success sau sửa entrypoint pytest. Backup/restore thực có đối chiếu 21 booking/12 phòng/23 sequence, từ chối đích có bảng. SQLite local được backup và nâng tới 0022 không đổi dữ liệu cũ/tiền.
+- Bốn request Gemini đánh giá giả được ghi; cloud smoke thêm một báo cáo tổng hợp thật. UI mobile/desktop và PDF đã kiểm tra bằng browser/render, chưa thiết bị vật lý.
+- Render Free riêng đã live: https://lotus-hotel-ai.onrender.com; PostgreSQL Free hết hạn 22/11/2026, báo cáo dự kiến 30/10. Redeploy giữ fingerprint dữ liệu và mật khẩu mới. Không thay dịch vụ nhatot. Chi tiết và giới hạn trong render-release.md.
+- Báo cáo, ERD/từ điển dữ liệu, ma trận test, README, slide và kịch bản demo nằm trong docs/output. Hai thành viên tự review chéo và diễn tập thật trước bảo vệ.
