@@ -84,3 +84,11 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Phiếu sự cố có người phụ trách, trạng thái và thời gian xử lý; khoảng khóa [bắt đầu,kết thúc) không được chồng booking/khóa hiện có. Tạo block và tạo booking khóa cùng phòng để tránh race.
 - Inventory chung cấp cho đặt/sửa booking, API phòng trống, lịch và AI; phòng dọn chưa được kiểm tra sẵn sàng khi còn khóa hôm nay. Khóa hết khoảng ngày không chặn lịch tương lai. Trạng thái vật lý maintenance thủ công vẫn là khóa vô thời hạn cho tới xử lý.
 - Test cả ba đường phòng trống/lịch/AI, không ghi đè booking, sát ngày cuối và hai session tạo block cùng booking; kèm migration PostgreSQL/SQLite.
+
+
+## C11 — Bàn lễ tân và no-show
+
+- Bảng khách đến/đi/đang ở, quá giờ và tiền còn phải thu; walk-in đi qua tạo booking rồi nhận. Giờ Asia/Bangkok từ core/hotel_time, chỉ check-in trong khoảng ngày đã đặt; thời điểm nhận/trả thực tế được ghi.
+- No-show là trạng thái riêng, chỉ sau giờ cấu hình của ngày đến, không đổi tình trạng vật lý phòng. Có hóa đơn phải xử lý tài chính trước khi no-show. Các báo cáo không tính no-show vào công suất.
+- Phụ thu cố định một lần/lưu trú cho từng loại nhận sớm/trả muộn; nhân viên xác nhận đúng mức đang cấu hình, lưu snapshot và người xác nhận. Không tự cộng phí khi xem. Hóa đơn có cột phụ thu riêng, constraint tổng/giảm giá được nâng cấp giữ nguyên tổng cũ.
+- Test thời điểm sát giờ no-show, trước ngày nhận bị chặn, phí không tự áp dụng/không lặp/giá đổi phải xác nhận lại, checkout và migration. Đồng hồ test được cố định 2030-01-10 thay vì phụ thuộc ngày chạy.

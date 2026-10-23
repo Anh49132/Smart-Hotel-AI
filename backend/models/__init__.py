@@ -20,6 +20,8 @@ from .entities import (
     BookingChange,
     CleaningTask,
     RoomBlock,
+    HotelPolicy,
+    BookingSurcharge,
 )
 
 __all__ = ['Role', 'RoomStatus', 'BookingStatus', 'PaymentStatus', 'User', 'RoomType', 'Room', 'Customer', 'Booking', 'HotelService', 'ServiceUsage', 'Invoice', 'BookingStatusHistory', 'Payment', 'AIResult', 'RatePlan', 'BookingNight']
