@@ -8,7 +8,7 @@ from core.config import settings
 from core.ai_limiter import ai_budget
 from core.hotel_time import hotel_today
 from datetime import date,timedelta
-from backend.services.ai_reports import draft_report,draft_handover,REPORT_VERSION
+from backend.services.ai_reports import draft_report,REPORT_VERSION
 import json
 from core.database import get_db
 from datetime import datetime
@@ -47,14 +47,6 @@ async def report(start:date|None=None,end:date|None=None,db:Session=Depends(get_
     record = AIResult(kind='report',content=content,generated_by=user.id,model_name=settings.gemini_model,prompt_version=REPORT_VERSION,source_json=json.dumps(source,ensure_ascii=False))
     db.add(record); db.commit(); db.refresh(record)
     return {"content": content, "ai_result_id": record.id, "review_status": record.review_status}
-
-
-@router.post('/ai/handover/{shift_id}',dependencies=[Depends(ai_guard)])
-async def handover(shift_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist))):
-    content,source=await draft_handover(db,shift_id,user)
-    record=AIResult(kind='handover',content=content,generated_by=user.id,model_name=settings.gemini_model,prompt_version='handover-v1',source_json=json.dumps(source,ensure_ascii=False))
-    db.add(record);db.commit();db.refresh(record)
-    return {'content':content,'ai_result_id':record.id,'review_status':record.review_status}
 
 
 @router.post('/ai/chat',dependencies=[Depends(ai_guard)])

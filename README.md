@@ -9,9 +9,9 @@ Hệ thống quản lý nội bộ khách sạn vừa và nhỏ, tích hợp Goo
 - Admin, lễ tân, kế toán và buồng phòng; quản trị tạo/kích hoạt tài khoản, phân quyền và reset mật khẩu; đổi mật khẩu lần đầu và thu hồi phiên cũ.
 - Loại phòng/phòng/bảng giá, lịch phòng, tìm phòng theo ngày/khách/loại, bảo trì có khoảng ngày.
 - Khách/lịch sử lưu trú, đặt/nhận/trả/hủy/no-show, đổi lịch/phòng có lịch sử và giá từng đêm.
-- Dịch vụ, phụ thu/giảm giá, cọc/thu/hoàn, sổ tiền, bảng kê và chứng từ PDF tiếng Việt; chốt ca và đối soát.
+- Dịch vụ, phụ thu/giảm giá, cọc/thu/hoàn, sổ tiền, bảng kê và chứng từ PDF tiếng Việt; đối soát theo từng booking.
 - Công suất theo lịch, hóa đơn, thu/hoàn/công nợ theo mốc được công bố; xuất CSV.
-- Gemini tư vấn phòng có đối chiếu, email theo ngữ cảnh, báo cáo/khuyến mại và bàn giao ca; bản nháp lưu model/prompt/source và lịch sử duyệt.
+- Gemini tư vấn phòng có đối chiếu, email theo ngữ cảnh, báo cáo/khuyến mại; bản nháp lưu model/prompt/source và lịch sử duyệt.
 
 Phạm vi một khách sạn, không có cổng khách tự đặt/thanh toán hoặc đăng ký công khai. Thanh toán là nhân viên ghi nhận thực tế, chứng từ nội bộ không thay hóa đơn điện tử. Email AI là bản nháp, chưa gửi tự động.
 
@@ -44,13 +44,13 @@ Windows có thể dùng run-hotel.bat; kiểm tra môi trường trước khi d�
 .venv/Scripts/python.exe -m pytest -q --disable-warnings
 ```
 
-Test tạo DB/schema tạm; không dùng tài khoản DB production làm đích kiểm thử. Kết quả phát hành local: PostgreSQL **165 passed**, SQLite **163 passed, 2 skipped**. Unit/integration AI dùng mock; bốn request Gemini thật bằng dữ liệu giả được ghi riêng. Có cảnh báo deprecation. [Nghiệm thu](docs/release-evidence.md) và [ma trận yêu cầu/test](docs/traceability.md) ghi phạm vi và giới hạn. GitHub Actions chạy cả hai DB và Docker build; xem run thực tế thay vì suy từ file workflow.
+Test tạo DB/schema tạm; không dùng tài khoản DB production làm đích kiểm thử. Kết quả phát hành local: PostgreSQL **164 passed**, SQLite **162 passed, 2 skipped**. Unit/integration AI dùng mock; bốn request Gemini thật bằng dữ liệu giả được ghi riêng. Có cảnh báo deprecation. [Nghiệm thu](docs/release-evidence.md) và [ma trận yêu cầu/test](docs/traceability.md) ghi phạm vi và giới hạn. GitHub Actions chạy cả hai DB và Docker build; xem run thực tế thay vì suy từ file workflow.
 
 Backend kiểm tra overlap `[check_in, check_out)`, khóa và transaction khi đặt/đổi/thu/hoàn; request tiền chống xử lý lặp. Giá chụp theo đêm, MoneyEntry là sổ chuẩn. Báo cáo tách hóa đơn, dòng tiền, hoàn và công nợ hiện tại; dữ liệu thu cũ thiếu ngày giữ legacy, không dựng lịch sử.
 
 ## AI và dữ liệu riêng tư
 
-Gemini REST API qua httpx, key ở header. Tư vấn chỉ dùng phòng backend lọc và kiểm chứng; model không được quyết định giá hoặc ghi giao dịch. Báo cáo/ca đối chiếu schema và snapshot. Email tự do vẫn cần người kiểm tra/duyệt. Không gửi giấy tờ hoặc thông tin thanh toán; không nhập bí mật vào chat. Bộ lọc mẫu không nhận biết mọi cách viết dữ liệu nhạy cảm.
+Gemini REST API qua httpx, key ở header. Tư vấn chỉ dùng phòng backend lọc và kiểm chứng; model không được quyết định giá hoặc ghi giao dịch. Báo cáo đối chiếu schema và snapshot. Email tự do vẫn cần người kiểm tra/duyệt. Không gửi giấy tờ hoặc thông tin thanh toán; không nhập bí mật vào chat. Bộ lọc mẫu không nhận biết mọi cách viết dữ liệu nhạy cảm.
 
 Giới hạn một tiến trình: 10 request AI/phút/người, tối đa hai đang xử lý, timeout có thông báo, context hữu hạn. Không tự retry nghiệp vụ khi lỗi mạng. [Nhật ký AI SDLC](docs/ai-usage-log.md), [đánh giá gọi thật](docs/ai-live-evaluation-2026-10-23.json).
 
@@ -64,7 +64,7 @@ Web và PostgreSQL Render Free riêng tại Singapore. DB tạo 23/10/2026, **h�
 
 ## Tài liệu bảo vệ
 
-[Báo cáo](docs/technical-report.md) · [Từ điển dữ liệu](docs/data-dictionary.md) · [Kịch bản demo và câu hỏi](docs/demo-script.md) · [Slide PowerPoint](output/presentation/lotus-hotel-aia331-release.pptx) · [Kế hoạch/phân công Git](docs/ke-hoach-hoan-thien-2-nguoi.md).
+[Báo cáo](docs/technical-report.md) · [Từ điển dữ liệu](docs/data-dictionary.md) · [Kịch bản demo và câu hỏi](docs/demo-script.md) · [Slide PowerPoint](output/presentation/lotus-hotel-aia331-no-shifts.pptx) · [Kế hoạch/phân công Git](docs/ke-hoach-hoan-thien-2-nguoi.md).
 
 Git Flow dùng main/dev/feature. Coding agent hỗ trợ theo phân công hai tài khoản; author commit không tự chứng minh review chéo hay diễn tập của sinh viên. Hai thành viên cần tự review, hiểu code và tập trình bày thật. Tài liệu đánh giá đầu vào được giữ riêng để đối chiếu lịch sử, không phải kết luận bản cuối.
 

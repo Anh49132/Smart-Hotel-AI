@@ -1,7 +1,7 @@
 from . import ai, bookings, customers, invoices, rooms, services, users, housekeeping, maintenance, frontdesk
 from backend.dependencies import get_current_user
 from fastapi import APIRouter, Depends
-from . import money,refunds,shifts,reports
+from . import money,refunds,reports
 
 router = APIRouter(prefix="/api", dependencies=[Depends(get_current_user)])
 router.include_router(rooms.router)
@@ -16,5 +16,4 @@ router.include_router(maintenance.router)
 router.include_router(frontdesk.router)
 router.include_router(money.router)
 router.include_router(refunds.router)
-router.include_router(shifts.router)
 router.include_router(reports.router)

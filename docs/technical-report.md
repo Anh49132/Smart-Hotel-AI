@@ -10,8 +10,8 @@ Phạm vi là quản lý nội bộ. Không có cổng khách tự đặt/thanh 
 
 | Actor | Nghiệp vụ |
 |---|---|
-| Quản trị | Nhân sự, cấu hình/chính sách, danh mục, mọi ca, báo cáo và duyệt AI |
-| Lễ tân | Khách, lịch/phòng trống, booking/đổi lịch/đổi phòng, nhận/trả, dịch vụ, cọc và ca của mình; AI theo phạm vi |
+| Quản trị | Nhân sự, cấu hình/chính sách, danh mục, báo cáo và duyệt AI |
+| Lễ tân | Khách, lịch/phòng trống, booking/đổi lịch/đổi phòng, nhận/trả, dịch vụ, cọc; AI theo phạm vi |
 | Kế toán | Bảng kê/thu/hoàn/điều chỉnh có lý do, chứng từ và đối soát, báo cáo và duyệt AI |
 | Buồng phòng | Công việc dọn/kiểm tra phòng và trạng thái vật lý; không xem tài chính/giấy tờ khách |
 | Gemini | Dịch vụ ngoài trả đề xuất/bản nháp, không có quyền ghi DB |
@@ -62,8 +62,6 @@ erDiagram
   BOOKINGS ||--o| INVOICES : invoiced
   BOOKINGS ||--o{ MONEY_ENTRIES : transacts
   BOOKINGS ||--o{ FINANCIAL_ADJUSTMENTS : adjusts
-  CASHIER_SHIFTS ||--o{ MONEY_ENTRIES : records
-  USERS ||--o{ CASHIER_SHIFTS : operates
   USERS ||--o{ AI_RESULTS : requests
   AI_RESULTS ||--o{ AI_REVIEW_EVENTS : reviewed
   ROOMS ||--o{ CLEANING_TASKS : cleans
@@ -71,19 +69,19 @@ erDiagram
 
 ERD thể hiện quan hệ chính; [từ điển dữ liệu](data-dictionary.md) ghi đủ bảng/cột/FK/check/unique lấy từ metadata. Tiền dùng Decimal/Numeric, kiểm tra số tiền và công thức hóa đơn tại backend và DB. `MoneyEntry` là sổ giao dịch chuẩn; `Payment` cũ giữ tương thích, không cộng trùng. Số dư cũ chưa biết ngày được đánh dấu `legacy_opening`, không giả ngày thu/ca.
 
-Khoảng lưu trú là `[ngày nhận, ngày trả)`: phòng trả ngày 17 có thể nhận lượt tiếp ngày 17. Tầng backend kiểm tra giao nhau cùng các chặng đổi phòng và block bảo trì. Khóa phòng/booking/ca và transaction bảo vệ các thao tác đồng thời; SQLite khóa ghi, PostgreSQL khóa hàng. Phòng sạch/sẵn sàng vật lý khác với phòng trống theo khoảng ngày.
+Khoảng lưu trú là `[ngày nhận, ngày trả)`: phòng trả ngày 17 có thể nhận lượt tiếp ngày 17. Tầng backend kiểm tra giao nhau cùng các chặng đổi phòng và block bảo trì. Khóa phòng/booking và transaction bảo vệ các thao tác đồng thời; SQLite khóa ghi, PostgreSQL khóa hàng. Phòng sạch/sẵn sàng vật lý khác với phòng trống theo khoảng ngày.
 
-Giá được chụp theo từng đêm, không thay hồi tố vì sửa bảng giá. Đổi lịch/phòng lưu lịch sử. Hủy/no-show áp dụng chính sách phí, ghi điều chỉnh; hoàn tiền trong phạm vi đã thu và có quyền/lý do. Request tài chính dùng khóa chống xử lý lặp; không xóa giao dịch cũ. Ca đóng giữ số liệu bàn giao và chênh lệch.
+Giá được chụp theo từng đêm, không thay hồi tố vì sửa bảng giá. Đổi lịch/phòng lưu lịch sử. Hủy/no-show áp dụng chính sách phí, ghi điều chỉnh; hoàn tiền trong phạm vi đã thu và có quyền/lý do. Request tài chính dùng khóa chống xử lý lặp; không xóa giao dịch cũ. Thu/hoàn trực tiếp theo booking, không có bước mở/chốt ca. Bảng cashier_shifts và shift_id được giữ làm dữ liệu lưu trữ cũ; nghiệp vụ mới không tạo hoặc phụ thuộc ca.
 
 ## 5. Quy trình sử dụng
 
 1. Quản trị tạo/kích hoạt nhân viên, nhân viên đổi mật khẩu lần đầu.
 2. Lễ tân chọn khoảng ngày, số khách, loại phòng; xem lịch và gợi ý Gemini từ phòng hợp lệ.
 3. Chọn/tạo khách và tạo booking. Backend kiểm tra lại phòng, giá, sức chứa.
-4. Mở ca để thu cọc, in phiếu. Khi khách đến xác nhận nhận phòng; ghi dịch vụ trong thời gian lưu trú.
+4. Thu cọc trực tiếp, in phiếu. Khi khách đến xác nhận nhận phòng; ghi dịch vụ trong thời gian lưu trú.
 5. Nếu cần, đổi lịch/phòng qua chức năng chuyên biệt để lưu giá/chặng và lịch sử.
 6. Trả phòng, xem bảng kê từng đêm/dịch vụ/phụ thu/giảm giá/cọc; thu số còn lại, xuất PDF. Phòng chuyển sang cần dọn.
-7. Buồng phòng hoàn thành dọn và kiểm tra; kế toán đối soát, chốt ca, xem báo cáo theo ngày.
+7. Buồng phòng hoàn thành dọn và kiểm tra; kế toán đối soát và xem báo cáo theo ngày.
 8. AI tạo email/báo cáo dạng nháp; người có quyền kiểm tra, duyệt/sao chép/in.
 
 Ảnh minh chứng thật trên CSDL QA giả: [lịch desktop](images/browser-desktop.png), [màn hình mobile](images/browser-mobile.png), [đặt phòng qua giao diện](images/browser-created-booking.png). Hai PDF giả tại `output/pdf`. Chưa kiểm thử máy in/điện thoại vật lý.
@@ -95,7 +93,6 @@ Giá được chụp theo từng đêm, không thay hồi tố vì sửa bảng 
 | Tư vấn phòng | Backend lọc ngày/khách/ngân sách/tiện ích/bảo trì; model trả ID theo schema; đối chiếu lại ID/giá, tối đa 3 | room-advice-v2 |
 | Email xác nhận/hủy/đổi/nhắc tiền | Điều kiện theo trạng thái/công nợ; dữ liệu tối thiểu; kiểm tra lại snapshot sau gọi; bản nháp có duyệt | booking-email-v2 |
 | Báo cáo công suất | Snapshot báo cáo C17; key/value phải khớp; code dựng con số; ý tưởng khuyến mại cần quản lý duyệt | operating-report-v2 |
-| Bàn giao ca | Chỉ tổng số liệu và ca trong quyền; model chọn trọng tâm, không đọc ghi chú nhân sự/khách | handover-v1 |
 
 Prompt hệ thống yêu cầu chỉ dùng dữ liệu cung cấp, ngắn gọn và lịch sự. Ngày, số tiền, phòng trống do code quyết định. Không gửi số giấy tờ, thông tin thanh toán/thẻ/tài khoản; email chỉ dùng tên đã lọc và thông tin booking tối thiểu. Lưu model, prompt version, source có chọn lọc và lịch sử duyệt; bản cũ dùng `legacy/unknown`.
 
@@ -105,7 +102,7 @@ Timeout, giới hạn context, tối đa hai yêu cầu AI đang chạy và 10 y
 
 ## 7. Kiểm thử và hiệu năng
 
-[Ma trận yêu cầu](traceability.md) liên kết module/test; [nghiệm thu C21](acceptance-c21.md) giữ kết quả ở thời điểm C21; kết quả phát hành ghi trong release-evidence.md. Kiểm thử gồm đặt trùng/biên ngày/đồng thời, đổi lịch/phòng, trả phòng, bảng kê, thu/hoàn lặp, ca, quyền, riêng tư và AI bịa dữ liệu. Migration kiểm tra cài mới/nâng/hạ và bảo toàn lịch sử trên hai CSDL. AI unit/integration dùng mock, bốn request thật được ghi riêng.
+[Ma trận yêu cầu](traceability.md) liên kết module/test; [nghiệm thu C21](acceptance-c21.md) giữ kết quả ở thời điểm C21; kết quả phát hành ghi trong release-evidence.md. Kiểm thử gồm đặt trùng/biên ngày/đồng thời, đổi lịch/phòng, trả phòng, bảng kê, thu/hoàn lặp, quyền, riêng tư và AI bịa dữ liệu. Migration kiểm tra cài mới/nâng/hạ và bảo toàn lịch sử trên hai CSDL. AI unit/integration dùng mock, bốn request thật được ghi riêng.
 
 Benchmark local PostgreSQL: 30 phòng, 120 booking, 72 GET tuần tự đều 200, chậm nhất 68,21 ms trong mẫu. Không tính mạng Render, cold start hay tải đồng thời. [JSON số đo](benchmark-postgres-2026-10-23.json) ghi môi trường và phương pháp.
 

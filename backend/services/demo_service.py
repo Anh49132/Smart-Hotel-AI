@@ -1,10 +1,9 @@
 """Explicit fake demo fixture. Re-runs never reset passwords, dates or financial data."""
-import json
 from datetime import datetime,time,timedelta,timezone
 from decimal import Decimal
 from sqlalchemy import select,text,update
 from fastapi import HTTPException
-from backend.models import DemoSeed,User,Role,RoomType,Room,RoomStatus,Customer,Booking,BookingStatus,BookingNight,RoomStay,BookingStatusHistory,HotelService,ServiceUsage,Invoice,Payment,MoneyEntry,FinancialAdjustment,CashierShift,CleaningTask,RoomBlock,PaymentStatus,HotelPolicy
+from backend.models import DemoSeed,User,Role,RoomType,Room,RoomStatus,Customer,Booking,BookingStatus,BookingNight,RoomStay,BookingStatusHistory,HotelService,ServiceUsage,Invoice,Payment,MoneyEntry,FinancialAdjustment,CleaningTask,RoomBlock,PaymentStatus,HotelPolicy
 from core.security import hash_password
 from core.hotel_time import hotel_today
 from .transactions import write_transaction
@@ -38,8 +37,6 @@ def seed_demo(db,password,anchor=None):
             c=Customer(full_name=f'Khách Demo {i+1:02}',phone=f'00000000{i:02}');db.add(c);db.flush();customers.append(c)
         service=HotelService(name='DEMO Giặt là',unit='kg',price=50000);db.add_all([service,HotelService(name='DEMO Ăn sáng',unit='suất',price=100000),HotelService(name='DEMO Đưa đón',unit='chuyến',price=300000)]);db.flush()
         actor=users[Role.accountant].id
-        shift=CashierShift(cashier_id=actor,status='closed',opening_cash=0,counted_cash=0,expected_cash=0,difference=0,opened_at=stamp(anchor-timedelta(days=40),8),closed_at=stamp(anchor,8),note='Ca tổng hợp dữ liệu giả để minh họa; không phải ca thực tế')
-        db.add(shift);db.flush();cash_in=Decimal(0);cash_out=Decimal(0)
         def booking(code,room_index,offset,nights,status='confirmed'):
             room=rooms[room_index];rate=types[room_index%3].nightly_rate
             start=anchor+timedelta(days=offset);end=start+timedelta(days=nights)
@@ -55,13 +52,10 @@ def seed_demo(db,password,anchor=None):
                 db.add(BookingStatusHistory(booking_id=b.id,from_status=BookingStatus(previous) if previous else None,to_status=BookingStatus(state),changed_by=users[Role.receptionist].id,changed_at=b.created_at if state=='confirmed' else b.actual_check_in if state=='checked_in' else b.actual_check_out if state=='checked_out' else stamp(anchor-timedelta(days=1)) if state=='cancelled' else stamp(start,23)));previous=state
             return b,Decimal(rate)*nights
         def money(b,amount,kind,when,inv=None):
-            nonlocal cash_in,cash_out
             mirror=None
             if kind=='payment':
                 mirror=Payment(invoice_id=inv.id,amount=amount,paid_by=actor,paid_at=stamp(when));db.add(mirror);db.flush()
-            db.add(MoneyEntry(booking_id=b.id,payment_id=mirror.id if mirror else None,amount=amount,kind=kind,method='bank_transfer',reference='DEMO-NO-BANK',request_key=f'demo-{b.id}-{kind}',actor_id=actor,shift_id=shift.id,occurred_at=stamp(when)))
-            if kind=='refund':cash_out+=amount
-            else:cash_in+=amount
+            db.add(MoneyEntry(booking_id=b.id,payment_id=mirror.id if mirror else None,amount=amount,kind=kind,method='bank_transfer',reference='DEMO-NO-BANK',request_key=f'demo-{b.id}-{kind}',actor_id=actor,occurred_at=stamp(when)))
         for number,offset,room_index in [('PAST01',-35,0),('STAY01',-4,1)]:
             b,total=booking(number,room_index,offset,2,'checked_out')
             db.add(ServiceUsage(booking_id=b.id,service_id=service.id,quantity=1,unit_price=50000,used_at=stamp(b.check_in,18)))
@@ -77,6 +71,5 @@ def seed_demo(db,password,anchor=None):
         db.add(RoomBlock(room_id=rooms[7].id,start_date=anchor,end_date=anchor+timedelta(days=4),description='DEMO: bảo trì điều hòa',created_by=users[Role.receptionist].id))
         for day in range(1,15):booking(f'FUTURE{day:02}',8+((day-1)%2),day,2)
         booking('NEXTMONTH',10,35,2)
-        shift.snapshot_json=json.dumps({'cash':{'in':'0.00','out':'0.00'},'bank_transfer':{'in':str(cash_in),'out':str(cash_out)},'expected_cash':'0.00','pending':{'staying':1,'cleaning':1}},ensure_ascii=False)
         db.add(DemoSeed(name='lotus-demo-v1',anchor_date=anchor));db.commit()
         return {'already_seeded':False,'rooms':12,'bookings':21,'staff':3,'anchor':str(anchor)}

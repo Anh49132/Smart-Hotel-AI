@@ -1,4 +1,4 @@
-"""Acceptance workflow spans staff roles, room moves, cash drawers and reports."""
+"""Acceptance workflow spans staff roles, room moves, payments and reports."""
 import json
 from decimal import Decimal
 from datetime import datetime,timezone,timedelta
@@ -22,12 +22,11 @@ def ledger_clock():
 def as_user(client,user):
     client.cookies.set('access_token',create_token(user.id,user.role.value,user.token_version))
 
-def test_complete_stay_roles_room_move_cash_handover_and_cleaning(client,db,monkeypatch,ledger_clock):
+def test_complete_stay_roles_room_move_payments_and_cleaning(client,db,monkeypatch,ledger_clock):
     people={role:User(username=role.value,full_name=role.value,password_hash=hash_password('Demo@123'),role=role) for role in (Role.receptionist,Role.accountant,Role.housekeeping)}
     db.add_all([*people.values(),Room(id=2,number='303',floor=3,room_type_id=1)]);db.commit()
     clerk,accountant,cleaner=(people[r] for r in (Role.receptionist,Role.accountant,Role.housekeeping))
     as_user(client,clerk)
-    assert client.post('/api/shifts',json={'opening_cash':100000}).status_code==200
     monkeypatch.setattr('backend.services.room_advice.generate_structured',AsyncMock(return_value=json.dumps({'recommendations':[{'room_id':1,'stay_total':'1800000.00','reason_codes':['budget','capacity']}]})))
     assert client.post('/api/ai/room-advice',json={'guests':2,'budget':900000,'check_in':'2030-01-10','check_out':'2030-01-12'}).json()['validated']
     booking=client.post('/api/bookings',json={'customer_id':1,'room_id':1,'check_in':'2030-01-10','check_out':'2030-01-12','guests':2}).json();bid=booking['id']
@@ -47,12 +46,10 @@ def test_complete_stay_roles_room_move_cash_handover_and_cleaning(client,db,monk
     assert client.post(f'/api/bookings/{bid}/check-out').status_code==200
     inv=db.scalar(select(Invoice).where(Invoice.booking_id==bid));assert inv.total==2800000
     as_user(client,accountant)
-    shift=client.post('/api/shifts',json={'opening_cash':0}).json()['id']
     assert client.post(f'/api/invoices/{inv.id}/payments',json={'amount':2300000,'request_key':'acceptance-final-pay'}).status_code==200
     folio=client.get(f'/api/bookings/{bid}/folio').json()
     assert Decimal(folio['balance'])==0 and Decimal(folio['total'])==2800000
     assert sum(Decimal(line['amount']) for line in folio['lines'])==2800000
-    assert client.post(f'/api/shifts/{shift}/close',json={'counted_cash':2300000,'note':'Đã thu đủ booking demo'}).json()['difference']=='0.00'
     report=client.get('/api/reports/operations?start=2030-01-10&end=2030-01-14').json()
     assert report['allocated_nights']==3 and report['occupancy']==37.5
     assert Decimal(str(report['net_cash']))==2800000 and Decimal(str(report['invoice_net']))==2800000

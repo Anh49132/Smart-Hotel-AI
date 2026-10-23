@@ -1,5 +1,7 @@
 # Nghiệm thu bản bàn giao · 23/10/2026
 
+**Cập nhật hiện hành:** sau yêu cầu bỏ ca thu ngân, PostgreSQL 164 đạt; SQLite 162 đạt/2 skip. Xem [thanh toán trực tiếp](payment-simplification.md). Các số liệu bên dưới là nghiệm thu bản trước khi đơn giản hóa.
+
 - Python 3.14.7, requirements.lock; `pip check` và compileall đạt.
 - Full suite PostgreSQL: **165 passed**, 164,44 giây. SQLite: **163 passed, 2 skipped**, 133,53 giây. Hai skip là migration/transfer dành PostgreSQL. Test dùng DB/schema riêng, không chạy trên Render hay dữ liệu khách thật.
 - Có cảnh báo deprecation từ stack hiện tại (2149/2148 warnings); không ghi là không có cảnh báo. Nâng dependency/framework cần một đợt hồi quy riêng.

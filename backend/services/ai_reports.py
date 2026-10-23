@@ -3,10 +3,7 @@ import json
 from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field,ValidationError
 from fastapi import HTTPException
-from sqlalchemy import select
-from backend.models import CashierShift,Role
 from .reports_service import operating_report
-from .shifts_service import shift_view
 from .gemini_client import generate_structured
 
 REPORT_VERSION='operating-report-v2'
@@ -40,20 +37,3 @@ async def draft_report(db,start,end):
     lines += ['Gợi ý cần quản lý duyệt: '+PROMOTIONS[c] for c in dict.fromkeys(result.promotion_codes)]
     lines.append('Ảnh chụp dữ liệu tại lúc yêu cầu, có thể thay đổi sau đó. Không tự áp dụng khuyến mại.')
     return '\n\n'.join(lines),source
-
-class HandoverSelection(BaseModel):
-    model_config=ConfigDict(extra='forbid')
-    focus:list[Literal['cash','transfer','difference','pending']]=Field(min_length=1,max_length=4)
-
-async def draft_handover(db,shift_id,user):
-    shift=db.get(CashierShift,shift_id)
-    if not shift:raise HTTPException(404,'Không tìm thấy ca')
-    if user.role!=Role.admin and shift.cashier_id!=user.id:raise HTTPException(403,'Chỉ tóm tắt ca của chính mình')
-    view=shift_view(db,shift)
-    # Never send handover notes, staff names, transaction references or guest data.
-    source={'shift_id':shift.id,'status':shift.status,'opening_cash':str(shift.opening_cash),'counted_cash':str(shift.counted_cash),'difference':str(shift.difference),'totals':view['totals']}
-    raw=await generate_structured(json.dumps(source,default=str), 'Chọn các mục cần nhấn mạnh từ dữ liệu ca bằng focus trong schema. Không thêm nội dung khác.',HandoverSelection.model_json_schema())
-    try:result=HandoverSelection.model_validate_json(raw)
-    except ValidationError:raise HTTPException(502,'Tóm tắt ca sai cấu trúc') from None
-    facts={'cash':f"Tiền mặt thu/hoàn: {view['totals']['cash']['in']} / {view['totals']['cash']['out']} ₫; két dự kiến {view['totals']['expected_cash']} ₫",'transfer':f"Chuyển khoản thu/hoàn: {view['totals']['bank_transfer']['in']} / {view['totals']['bank_transfer']['out']} ₫",'difference':f"Chênh kiểm đếm: {shift.difference if shift.status=='closed' else 'Chưa chốt ca'}",'pending':f"Việc tồn lúc chốt: {json.dumps(view['totals'].get('pending',{}),ensure_ascii=False)}"}
-    return f'Ca #{shift.id} · {shift.status}\n\n'+'\n\n'.join(facts[k] for k in dict.fromkeys(result.focus)),json.loads(json.dumps(source,default=str))
