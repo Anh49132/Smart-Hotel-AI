@@ -27,7 +27,7 @@ def sanitize_free_text(value: str) -> str:
     return value
 
 
-async def generate_content(contents: list[dict], system: str) -> str:
+async def generate_content(contents: list[dict], system: str, response_schema: dict | None = None) -> str:
     api_key = settings.gemini_api_key.get_secret_value().strip()
     if not api_key:
         raise HTTPException(503, "Chưa cấu hình GEMINI_API_KEY trong .env. Thêm API key rồi khởi động lại ứng dụng.")
@@ -40,6 +40,9 @@ async def generate_content(contents: list[dict], system: str) -> str:
         ],
         "generationConfig": {"temperature": 1, "maxOutputTokens": settings.gemini_max_output_tokens},
     }
+    if response_schema is not None:
+        # REST schema fields: https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
+        payload['generationConfig'].update(responseMimeType='application/json',responseJsonSchema=response_schema)
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent"
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(settings.gemini_timeout_seconds, connect=10)) as client:
@@ -81,3 +84,7 @@ async def generate_content(contents: list[dict], system: str) -> str:
 
 async def generate_text(prompt: str, system: str) -> str:
     return await generate_content([{"role": "user", "parts": [{"text": prompt}]}], system)
+
+
+async def generate_structured(prompt: str, system: str, schema: dict) -> str:
+    return await generate_content([{'role':'user','parts':[{'text':prompt}]}],system,response_schema=schema)

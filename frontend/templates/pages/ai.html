@@ -21,7 +21,7 @@
         <div class="col-md-6"><label class="form-label">Ngày trả</label><input name="check_out" type="date" class="form-control" required></div>
         <div class="col-md-6"><label class="form-label">Số khách</label><input name="guests" type="number" value="2" min="1" class="form-control"></div>
         <div class="col-md-6"><label class="form-label">Ngân sách / đêm</label><input name="budget" type="number" value="1200000" class="form-control"></div>
-        <div class="col-12"><label class="form-label">Tiện ích mong muốn</label><input name="amenities" class="form-control" placeholder="View đẹp, bồn tắm, yên tĩnh..."></div>
+        <div class="col-12"><label class="form-label">Tiện ích mong muốn</label><input name="amenities" class="form-control" maxlength="500" placeholder="Tên tiện ích, phân cách dấu phẩy: Bồn tắm, WiFi"></div>
         <div class="col-12"><button class="btn btn-primary"><span class="normal-label">Nhận gợi ý từ AI</span></button></div>
       </form>
       <div id="aiResult" class="ai-result d-none"></div>
@@ -44,12 +44,14 @@
         <label class="form-label">Loại email</label>
         <select class="form-select mb-3" name="kind">
           <option value="confirmation">Xác nhận đặt phòng</option>
+          <option value="change">Thông báo thay đổi lịch/phòng</option>
           <option value="cancellation">Thông báo hủy phòng</option>
           <option value="payment_reminder">Nhắc thanh toán</option>
         </select>
         <button class="btn btn-outline-primary w-100">Soạn email</button>
       </form>
       <div id="emailResult" class="ai-result d-none"></div>
+      <a id="printEmail" class="btn btn-sm btn-light border mt-2 d-none" target="_blank" rel="noopener">In bản nháp</a>
       <button id="copyEmail" class="btn btn-sm btn-light border mt-2 d-none"><i class="bi bi-copy me-1"></i>Sao chép</button>
     </div>
     {% endif %}
@@ -59,6 +61,7 @@
       <small>PHÂN TÍCH KINH DOANH</small>
       <h4>Báo cáo AI nhanh</h4>
       <p>Phân tích công suất và gợi ý chương trình khuyến mãi từ dữ liệu hiện tại.</p>
+      <div class="row g-2 mb-3"><label class="col-6">Từ ngày<input id="reportStart" type="date" class="form-control" required></label><label class="col-6">Đến trước ngày<input id="reportEnd" type="date" class="form-control" required></label></div>
       <button id="reportBtn" class="btn btn-light w-100">Tạo báo cáo</button>
       <div id="reportResult" class="ai-result ai-result-dark d-none"></div>
     </div>
@@ -109,8 +112,8 @@ document.getElementById('emailForm').onsubmit=e=>{
   aiCall(e.submitter,async()=>{
     result.classList.remove('d-none');result.textContent='AI đang soạn email...';
     const d=formJSON(e.target);d.booking_id=+d.booking_id;
-    try{const j=await apiRequest('/api/ai/email',{method:'POST',body:JSON.stringify(d)});result.textContent=j.content;copy.classList.remove('d-none')}
-    catch(err){result.textContent=err.message;copy.classList.add('d-none')}
+    try{const j=await apiRequest('/api/ai/email',{method:'POST',body:JSON.stringify(d)});result.textContent=j.content;copy.classList.remove('d-none');const print=document.getElementById('printEmail');print.href=`/ai/results/${j.ai_result_id}/print`;print.classList.remove('d-none')}
+    catch(err){result.textContent=err.message;copy.classList.add('d-none');document.getElementById('printEmail').classList.add('d-none')}
   })
 };
 
@@ -121,9 +124,10 @@ document.getElementById('copyEmail').onclick=async()=>{
 {% endif %}
 
 {% if user.role.value in ['admin', 'accountant'] %}
+document.getElementById('reportStart').value=new Date(new Date().getFullYear(),new Date().getMonth(),1,12).toISOString().slice(0,10);document.getElementById('reportEnd').value=new Date(Date.now()+86400000).toISOString().slice(0,10);
 document.getElementById('reportBtn').onclick=e=>aiCall(e.currentTarget,async()=>{
   const el=document.getElementById('reportResult');el.classList.remove('d-none');el.textContent='Đang tổng hợp số liệu...';
-  try{const j=await apiRequest('/api/ai/report');el.textContent=j.content}catch(err){el.textContent=err.message}
+  try{const j=await apiRequest(`/api/ai/report?start=${document.getElementById('reportStart').value}&end=${document.getElementById('reportEnd').value}`,{method:'POST',body:'{}'});el.textContent=j.content}catch(err){el.textContent=err.message}
 });
 {% endif %}
 
@@ -136,7 +140,7 @@ async function loadReviews(){
     for(const item of items){
       const row=document.createElement('div');row.className='border-top pt-3';
       const head=document.createElement('div');head.className='d-flex justify-content-between gap-2 mb-2';
-      const label=document.createElement('strong');label.textContent=`#${item.id} · ${item.kind} · ${new Date(item.created_at+'Z').toLocaleString('vi-VN')}`;
+      const label=document.createElement('strong');label.textContent=`#${item.id} · ${item.kind}/${item.email_kind||''} · ${item.model_name} · ${item.prompt_version} · ${new Date(item.created_at+'Z').toLocaleString('vi-VN')}`;
       const status=document.createElement('span');status.textContent={pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[item.review_status]||item.review_status;
       head.append(label,status);
       const content=document.createElement('div');content.className='mb-2';content.style.whiteSpace='pre-wrap';content.textContent=item.content;

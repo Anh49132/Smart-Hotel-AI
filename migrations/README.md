@@ -47,3 +47,10 @@ source.close()
 ```
 
 Để khôi phục, sao chép `data/hotel.backup.db` thành `data/hotel.db` khi ứng dụng đã dừng; giữ riêng bản hiện tại nếu cần đối chiếu. Chạy `python -m alembic current` để kiểm tra phiên bản sau khôi phục. Với MySQL, dùng công cụ sao lưu/khôi phục của MySQL và tài khoản có quyền phù hợp.
+
+
+## Tài chính và ca thu ngân — schema 0016
+
+0013 tạo MoneyEntry làm sổ thu/hoàn duy nhất; Payment là mirror để tương thích API cũ, không cộng hai bảng. Migration chuyển Payment theo ngày thu đã biết; paid_amount còn thiếu thành legacy_opening, đánh dấu chưa rõ ngày thu. Tổng Payment lớn hơn paid_amount thì dừng nâng cấp để đối chiếu. 0015 thêm lý do hoàn, chính sách phí và bút toán điều chỉnh hủy/no-show. 0016 thêm ca thu ngân; giao dịch cũ giữ shift_id NULL vì không biết ca thực tế. Không có revision 0014 vì C14 chỉ đổi dịch vụ/giao diện.
+
+Sau nâng cấp, mở ca trước khi thu/hoàn mới. Migration chặn downgrade khi schema cũ không giữ được lịch sử mới: không xóa dữ liệu để vượt chặn. Giữ dữ liệu phát sinh trước khi khôi phục backup. Đối chiếu bằng chứng từ thật, không dựng ca/ngày thu giả.

@@ -17,7 +17,7 @@ Ngày lập: 23/10/2026. Phạm vi: phần mềm nội bộ cho quản trị vi�
 
 Workspace đã có nghiệp vụ cơ bản, migration 0002, lịch sử trạng thái/thanh toán, bản nháp AI và Google Gemini. Lần kiểm tra gần nhất: 41 test đạt; bốn chức năng AI đã gọi thật thành công bằng dữ liệu giả. Đây không phải bằng chứng các lỗi nghiệp vụ trong báo cáo đánh giá đã được sửa.
 
-Hiện còn nhiều thay đổi chưa commit trên main. Trước khi chia việc, kiểm tra và lưu một mốc hiện trạng: `chore: snapshot current hotel system and Gemini integration`. Chỉ stage tệp đã kiểm tra; không đưa .env, database, bản backup, cache hay môi trường ảo vào Git. Ghi tác giả theo người thực hiện/xác nhận mốc hiện trạng. Không phân bổ lại lịch sử cũ thành đóng góp mới.
+Đã lưu mốc hiện trạng trên main (e0d631b) trước khi chia việc: `chore: snapshot current hotel system and Gemini integration`. Chỉ stage tệp đã kiểm tra; không đưa .env, database, bản backup, cache hay môi trường ảo vào Git. Ghi tác giả theo người thực hiện/xác nhận mốc hiện trạng. Không phân bổ lại lịch sử cũ thành đóng góp mới.
 
 Mốc hiện trạng và merge commit không nằm trong **26 commit dự kiến: R01/R02 cho PostgreSQL và Render, C01–C24 cho hoàn thiện chức năng**. Giữ ID C01–C24 để dễ đối chiếu kế hoạch trước; R02 được triển khai sau C04. Báo cáo đánh giá trước đó ở `docs/danh-gia-tieu-chi-2026-10-23.md` là danh sách lỗi đầu vào.
 
@@ -29,10 +29,10 @@ Mốc hiện trạng và merge commit không nằm trong **26 commit dự kiến
 - Mỗi dòng là một nhánh/PR và một commit nghiệp vụ chính. Nếu phát sinh sửa lỗi đáng kể, giữ commit sửa bổ sung có nội dung rõ ràng, không ép lịch sử để giữ đúng con số.
 - Nhánh do A thực hiện: **B review và merge**. Nhánh do B thực hiện: **A review và merge**. Như vậy mỗi người review/merge 13 PR nếu giữ đúng cấu trúc kế hoạch.
 - Dùng merge commit để giữ tác giả các commit và thấy rõ điểm tích hợp. Trên GitHub, tài khoản bấm merge quyết định người thực hiện merge; đổi user.email trong Git không đổi đăng nhập GitHub.
-- Tạo nhánh từ main mới nhất sau khi các phụ thuộc đã merge. Hai người có thể làm song song các việc độc lập ở checkout/worktree riêng. Không đổi nhánh của cùng một thư mục khi người kia còn đang sửa.
+- Git Flow: `main → dev → feature/...`. Tạo nhánh chức năng từ dev mới nhất sau khi các phụ thuộc đã merge; PR chức năng đích là dev. Hai người có thể làm song song các việc độc lập ở checkout/worktree riêng. Không đổi nhánh của cùng một thư mục khi người kia còn đang sửa.
 - Nếu dùng chung máy, dùng cấu hình `git -c user.name=... -c user.email=... commit ...` cho từng lần commit; kiểm tra `git var GIT_AUTHOR_IDENT` trước đó. Email phải thuộc tài khoản tương ứng để liên kết tác giả đúng.
 - Migrations phải có thứ tự revision nhất quán; trước khi merge, đối chiếu head mới và chỉnh phụ thuộc migration nếu hai nhánh cùng thêm schema.
-- Cập nhật main qua PR, tránh push trực tiếp lên nhánh đang chạy online. Auto-deploy chỉ được bật sau khi xác định đúng service khách sạn và có CI phù hợp; mọi migration phải tương thích dữ liệu và có bản sao trước thay đổi quan trọng. Khôi phục mã không tự khôi phục database.
+- Nghiệm thu đợt trên dev, sau đó tạo PR dev → main để phát hành; main là nhánh triển khai Render, tránh push trực tiếp. Auto-deploy chỉ được bật sau khi xác định đúng service khách sạn và có CI phù hợp; mọi migration phải tương thích dữ liệu và có bản sao trước thay đổi quan trọng. Khôi phục mã không tự khôi phục database.
 
 ## Đợt hạ tầng — PostgreSQL trước, online sau khi sửa lỗi nền tảng
 
@@ -152,3 +152,39 @@ Phụ thuộc: C21 tích hợp sau C20; C22 chuẩn bị dữ liệu từ trư�
 6. Mang báo cáo/slide, ma trận yêu cầu-test, link repository/PR và nhật ký AI thật. Cả hai người diễn tập phần mình làm và phần review.
 
 Ước lượng ban đầu: 4–6 tuần với hai người làm đều; cần hiệu chỉnh sau đợt 1 theo thời gian thực. Đổi phòng giữa kỳ, giao dịch tiền và migration là những hạng mục cần dự phòng. Mốc online không phụ thuộc việc hoàn tất toàn bộ 26 commit, nhưng phụ thuộc sửa lỗi nền tảng và bảo mật trước. Không xác nhận “đủ 10 tiêu chí” chỉ dựa vào số commit: chỉ xác nhận sau nghiệm thu và kiểm tra tài liệu/demo.
+
+
+## Tiến độ đợt đầu — 23/10/2026
+
+Đã thực hiện R01, C01, C02, C03, C04 và nhập vào dev bằng merge commit local. Đây là 5 commit nghiệp vụ, ngoài commit baseline và các merge commit. Các nhánh chức năng được giữ để đối chiếu. R01–C04 đã push lên GitHub; chưa PR/review trên GitHub, chưa phát hành dev lên main và chưa triển khai R02.
+
+Bộ kiểm thử: SQLite 82 đạt, 2 bỏ qua do chỉ áp dụng PostgreSQL; PostgreSQL 84 đạt trên PostgreSQL 16 local, schema kiểm thử tách riêng. Test dùng dữ liệu giả, không gọi Gemini thật. Còn cảnh báo deprecation từ thư viện với Python hiện tại; test không có lỗi.
+
+Database local SQLite đã sao lưu `data/hotel.before-first-five.20261023-113803.db`, nâng từ 0002 lên 0006, đối chiếu số dòng các bảng và tổng tiền hóa đơn không đổi, integrity/FK check đạt. Đây chưa phải chuyển dữ liệu lên PostgreSQL Render. Dữ liệu legacy chưa có giá đã chốt vẫn cần đối chiếu như tài liệu PostgreSQL.
+
+
+## Đợt thử hai tài khoản — C05/C06
+
+Theo yêu cầu tiếp theo, thực hiện C05 (Anh49132) rồi C06 (khanhhoang1012006-svg) trên hai nhánh riêng từ dev; R02 vẫn đang chờ triển khai. C05 đã push bằng danh tính GitHub Anh49132 được kiểm chứng qua API /user. C06 sử dụng bước đăng nhập riêng của Khanh trước khi push, không suy ra người push từ tác giả commit. Giữ merge local vào dev, chưa coi là review chéo GitHub.
+
+Nghiệm thu mã C05+C06: PostgreSQL 100 test đạt; SQLite 98 đạt/2 bỏ qua PostgreSQL; migration local giữ số dòng và tổng tiền cũ. Kiểm tra tương tác trình duyệt và deploy live vẫn thuộc công việc chưa hoàn tất.
+
+
+## Đợt sáu commit C07–C12 — 23/10/2026
+
+- Anh49132: C07 booking-changes, C09 housekeeping, C11 frontdesk.
+- khanhhoang1012006-svg: C08 room-calendar, C10 maintenance, C12 guest-history.
+- Mỗi phần một nhánh feature từ dev, triển khai theo phụ thuộc rồi merge local có commit riêng. Hai tài khoản đã được lưu trong Git Credential Manager; chọn credential.username cho từng push và kiểm chứng tài khoản qua API /user, không đổi tác giả sau khi push hoặc giả lịch sử review.
+- PostgreSQL 117 test đạt; SQLite 115 đạt/2 bỏ qua PostgreSQL. Browser QA dùng dữ liệu giả riêng để thử lịch→đổi phòng→dọn/kiểm tra và quyền housekeeping, khách và bàn lễ tân; đây chưa là kiểm thử UX đa thiết bị đầy đủ.
+- Database local nâng 0007→0012 sau backup, số dòng bảng cũ/tổng tiền không đổi. main vẫn là mốc phát hành trước, chưa triển khai R02/Render. Báo cáo đánh giá cũ vẫn là tài liệu đầu vào theo ngày, không tự coi là chứng nhận đủ toàn bộ tiêu chí.
+
+
+## Đợt sáu commit C13–C18 — 23/10/2026
+
+- Anh49132: C13 deposits, C15 refunds, C17 operating-reports.
+- khanhhoang1012006-svg: C14 folio, C16 shift-handover, C18 room-advice.
+- Mỗi phần một feature từ dev, kiểm thử rồi merge local --no-ff; push riêng nhóm ba nhánh bằng credential của đúng tài khoản. Đây không thay thế review chéo. main chưa phát hành, R02/Render chưa triển khai.
+- Full suite PostgreSQL 142 đạt; SQLite 140 đạt/2 bỏ qua PostgreSQL. Sau review bổ sung ba ca về quyền/két tiền/chặn bỏ qua phí, chạy cùng 15 ca đặt phòng/frontdesk/ca (18 ca) trên cả hai CSDL đều đạt. AI chỉ mock.
+- Browser QA với DB riêng: xem bảng kê, preview hủy, chốt ca và báo cáo; kiểm tra bảng hẹp cho cuộn ngang, chưa hoàn tất UX đa thiết bị hoặc máy in/PDF thực tế.
+- Backup local `data/hotel.before-c13-c18.20261023-184250.db`; schema 0012→0016, Alembic check, integrity/FK đạt; số dòng bảng cũ/giá trị hóa đơn giữ nguyên, MoneyEntry đối chiếu khớp paid_amount. Không chuyển dữ liệu lên Render trong đợt này.
+- Số thu cũ không biết ngày để legacy_opening, không tính dòng tiền; không gán ca giả. Công suất C17 là theo lịch, số dư là hiện tại; email/báo cáo AI nâng cao và các hạng mục cuối vẫn theo C19 trở đi.

@@ -5,6 +5,7 @@ Revises: 0001
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM
 
 revision = "0002"
 down_revision = "0001"
@@ -13,12 +14,16 @@ depends_on = None
 
 
 def upgrade():
+    # PostgreSQL's bookingstatus type was created by 0001; do not recreate it.
+    booking_status = sa.Enum("confirmed", "checked_in", "checked_out", "cancelled", name="bookingstatus").with_variant(
+        ENUM("confirmed", "checked_in", "checked_out", "cancelled", name="bookingstatus", create_type=False), "postgresql"
+    )
     op.create_table(
         "booking_status_history",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("booking_id", sa.Integer(), sa.ForeignKey("bookings.id"), nullable=False),
-        sa.Column("from_status", sa.Enum("confirmed", "checked_in", "checked_out", "cancelled", name="bookingstatus"), nullable=True),
-        sa.Column("to_status", sa.Enum("confirmed", "checked_in", "checked_out", "cancelled", name="bookingstatus"), nullable=False),
+        sa.Column("from_status", booking_status, nullable=True),
+        sa.Column("to_status", booking_status, nullable=False),
         sa.Column("changed_by", sa.Integer(), sa.ForeignKey("users.id"), nullable=True),
         sa.Column("changed_at", sa.DateTime(), nullable=False),
     )

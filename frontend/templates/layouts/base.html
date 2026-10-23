@@ -3,27 +3,36 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Lotus Hotel AI{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/extras.css">
+  <link rel="stylesheet" href="/static/css/extras.css"><link rel="stylesheet" href="/static/css/operations-ux.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></a>
+    <a class="brand" href="{{'/housekeeping' if user.role.value=='housekeeping' else '/'}}"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></a>
     <nav>
+      {% if user.role.value!='housekeeping' %}
       <a class="{{'active' if active=='dashboard'}}" href="/"><i class="bi bi-grid"></i>Tổng quan</a>
       <p>VẬN HÀNH</p>
+      {% if user.role.value in ['admin','receptionist'] %}<a href="/frontdesk"><i class="bi bi-person-workspace"></i>Bàn lễ tân</a>{% endif %}
       <a class="{{'active' if active=='rooms'}}" href="/rooms"><i class="bi bi-door-open"></i>Phòng</a>
+      {% if user.role.value=='admin' %}<a class="{{'active' if active=='rates'}}" href="/rates"><i class="bi bi-tags"></i>Loại phòng & bảng giá</a>{% endif %}
       <a class="{{'active' if active=='bookings'}}" href="/bookings"><i class="bi bi-calendar2-check"></i>Đặt phòng</a>
+      <a class="{{'active' if active=='calendar'}}" href="/calendar"><i class="bi bi-calendar3"></i>Lịch phòng</a>
       <a class="{{'active' if active=='customers'}}" href="/customers"><i class="bi bi-people"></i>Khách hàng</a>
       <a class="{{'active' if active=='services'}}" href="/services"><i class="bi bi-cup-hot"></i>Dịch vụ</a>
       <p>TÀI CHÍNH & AI</p>
+      <a class="{{'active' if active=='shifts'}}" href="/shifts"><i class="bi bi-cash-stack"></i>Ca thu ngân</a>
       <a class="{{'active' if active=='invoices'}}" href="/invoices"><i class="bi bi-receipt"></i>Hóa đơn</a>
-      <a class="{{'active' if active=='reports'}}" href="/reports"><i class="bi bi-bar-chart"></i>Báo cáo</a>
+      {% if user.role.value in ['admin','accountant'] %}<a class="{{'active' if active=='reports'}}" href="/reports"><i class="bi bi-bar-chart"></i>Báo cáo</a>{% endif %}
       <a class="{{'active' if active=='ai'}}" href="/ai"><i class="bi bi-stars"></i>Trợ lý AI <em>AI</em></a>
       {% if user.role.value=='admin' %}<p>HỆ THỐNG</p><a class="{{'active' if active=='users'}}" href="/users"><i class="bi bi-person-gear"></i>Nhân sự & quyền</a>{% endif %}
+      {% if user.role.value in ['admin','receptionist'] %}<a href="/maintenance"><i class="bi bi-tools"></i>Bảo trì</a>{% endif %}
+      {% endif %}
+      {% if user.role.value in ['admin','receptionist','housekeeping'] %}<a class="{{'active' if active=='housekeeping'}}" href="/housekeeping"><i class="bi bi-stars"></i>Buồng phòng</a>{% endif %}
+      <a class="{{'active' if active=='account'}}" href="/account"><i class="bi bi-person-lock"></i>Tài khoản</a>
     </nav>
     <div class="sidebar-user"><div class="avatar">{{user.full_name[0]}}</div><span><b>{{user.full_name}}</b><small>{{user.role.value}}</small></span><a href="/logout" title="Đăng xuất"><i class="bi bi-box-arrow-right"></i></a></div>
   </aside>
@@ -33,25 +42,26 @@
       <div class="header-search"><i class="bi bi-search"></i><input id="globalSearch" placeholder="Tìm trong trang hiện tại..."></div>
       <div class="ms-auto d-flex gap-2 position-relative">
         <button class="icon-btn" id="notificationBtn" aria-label="Thông báo"><i class="bi bi-bell"></i></button>
-        <div id="notificationPanel" class="notification-panel d-none"><b>Thông báo</b><p class="mb-0 mt-2">Dữ liệu vận hành đã được đồng bộ.</p></div>
+        <div id="notificationPanel" class="notification-panel d-none"><b>Thông báo</b><p class="mb-0 mt-2">Thông báo thao tác hiển thị ở góc màn hình. Xem Bàn lễ tân để theo dõi khách đến/đi.</p></div>
         {% if user.role.value in ['admin','receptionist'] %}<a class="btn btn-primary rounded-pill px-4" href="/bookings#new"><i class="bi bi-plus-lg me-2"></i>Đặt phòng mới</a>{% endif %}
       </div>
     </header>
-    <section class="content">{% block content %}{% endblock %}</section>
+    <section class="content">{% if demo_mode %}<p class="demo-banner" role="status">BẢN DEMO · Dữ liệu giả cho học phần AIA331. Không nhập giấy tờ hoặc giao dịch thật.</p>{% endif %}{% block content %}{% endblock %}</section>
   </main>
 </div>
 <div class="toast-container position-fixed top-0 end-0 p-3"><div id="appToast" class="toast align-items-center border-0" role="alert"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
-{% include 'components/chat_widget.html' %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% if user.role.value!='housekeeping' %}{% include 'components/chat_widget.html' %}{% endif %}
+<script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script>
 const appToast = new bootstrap.Toast(document.getElementById('appToast'));
 function showToast(message, ok=true){const el=document.getElementById('appToast');el.classList.toggle('text-bg-success',ok);el.classList.toggle('text-bg-danger',!ok);document.getElementById('toastMessage').textContent=message;appToast.show()}
-async function apiRequest(url, options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});let data={};try{data=await response.json()}catch(e){}if(!response.ok)throw new Error(data.detail||'Không thể thực hiện thao tác');return data}
+async function apiRequest(url,options={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),url.startsWith('/api/ai/')?95000:20000);try{const response=await fetch(url,{...options,signal:options.signal||controller.signal,headers:{'Content-Type':'application/json',...(options.headers||{})}});let data={};try{data=await response.json()}catch(e){}if(!response.ok){const detail=Array.isArray(data.detail)?data.detail.map(x=>`${(x.loc||[]).filter(p=>p!=='body').join('.')}: ${x.msg}`).join('; '):data.detail;throw new Error(typeof detail==='string'?detail:'Không thể thực hiện thao tác')};return data}catch(err){if(err.name==='AbortError')throw new Error('Yêu cầu quá lâu. Tải lại dữ liệu trước khi thử lại thao tác.');if(err instanceof TypeError)throw new Error('Mất kết nối máy chủ. Kiểm tra mạng và tải lại dữ liệu trước khi thao tác tiếp.');throw err}finally{clearTimeout(timer)}}
 function formJSON(form){return Object.fromEntries(new FormData(form).entries())}
 document.getElementById('menuBtn').onclick=()=>document.getElementById('sidebar').classList.toggle('mobile-open');
 document.getElementById('notificationBtn').onclick=()=>document.getElementById('notificationPanel').classList.toggle('d-none');
 document.getElementById('globalSearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();document.querySelectorAll('[data-searchable]').forEach(el=>el.classList.toggle('d-none',q&&!el.textContent.toLowerCase().includes(q)))})
 </script>
+<script src="/static/js/operations-ux.js"></script>
 {% block scripts %}{% endblock %}
-<script src="/static/js/chat-widget.js"></script>
+{% if user.role.value!='housekeeping' %}<script src="/static/js/chat-widget.js"></script>{% endif %}
 </body></html>

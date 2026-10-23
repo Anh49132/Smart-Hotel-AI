@@ -127,4 +127,7 @@ def downgrade():
     op.drop_table('room_types')
     op.drop_index(op.f('ix_customers_full_name'), table_name='customers')
     op.drop_table('customers')
+    if op.get_bind().dialect.name == 'postgresql':
+        for name in ('paymentstatus', 'bookingstatus', 'roomstatus', 'role'):
+            sa.Enum(name=name).drop(op.get_bind(), checkfirst=True)
     # ### end Alembic commands ###

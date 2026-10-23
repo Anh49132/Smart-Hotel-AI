@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-23",
+  "backend": "postgresql",
+  "python": "3.14.7",
+  "rooms": 30,
+  "bookings": 120,
+  "scope": "local TestClient, single process, sequential, no network/AI; small-sample p95 uses maximum; not production load",
+  "results": [
+    {
+      "path": "/",
+      "requests": 12,
+      "median_ms": 10.29,
+      "p95_sample_ms": 12.01,
+      "all_http_200": true
+    },
+    {
+      "path": "/bookings",
+      "requests": 12,
+      "median_ms": 20.69,
+      "p95_sample_ms": 68.21,
+      "all_http_200": true
+    },
+    {
+      "path": "/calendar?start=2026-10-23&end=2026-11-06",
+      "requests": 12,
+      "median_ms": 29.3,
+      "p95_sample_ms": 54.48,
+      "all_http_200": true
+    },
+    {
+      "path": "/customers",
+      "requests": 12,
+      "median_ms": 6.75,
+      "p95_sample_ms": 19.1,
+      "all_http_200": true
+    },
+    {
+      "path": "/reports?start=2026-10-23&end=2026-11-06",
+      "requests": 12,
+      "median_ms": 16.06,
+      "p95_sample_ms": 51.2,
+      "all_http_200": true
+    },
+    {
+      "path": "/shifts",
+      "requests": 12,
+      "median_ms": 6.93,
+      "p95_sample_ms": 39.46,
+      "all_http_200": true
+    }
+  ]
+}

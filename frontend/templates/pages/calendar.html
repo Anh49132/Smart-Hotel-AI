@@ -1,0 +1,20 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Lịch phòng{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Lịch phòng</h1><p>Nhấn mã để xem lưu trú; nhấn dấu + để đặt phòng. Ngày trả không chiếm đêm. Mỗi trang 20 phòng, tối đa 31 ngày.</p></div></div>
+<form method="get" class="panel p-3 mb-3 row g-2">
+<div class="col-md-2"><label>Ngày đầu</label><input class="form-control" name="start" type="date" value="{{calendar.start}}" required></div>
+<div class="col-md-2"><label>Đến trước ngày</label><input class="form-control" name="end" type="date" value="{{calendar.end}}" required></div>
+<div class="col-md-3"><label>Loại phòng</label><select class="form-select" id="calendarType"><option value="">Tất cả</option>{% for t in types %}<option value="{{t.id}}" {{'selected' if type_id==t.id}}>{{t.name}}</option>{% endfor %}</select></div>
+<div class="col-md-2"><label>Tầng</label><input class="form-control" id="calendarFloor" type="number" min="0" value="{{floor if floor is not none else ''}}"></div>
+<div class="col-md-1"><label>Khách</label><input class="form-control" name="guests" type="number" min="1" max="20" value="{{guests}}" required></div>
+<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Lọc lịch</button></div></form>
+<p><span class="status confirmed">Đã xác nhận</span> <span class="status checked_in">Đang ở</span> <span class="status checked_out">Đã trả</span> · Kéo ngang để xem thêm ngày.</p>
+<div class="panel table-responsive calendar-scroll"><table class="table calendar-table"><thead><tr><th>Phòng</th>{% for day in calendar.days %}<th>{{day[8:]}}/{{day[5:7]}}</th>{% endfor %}</tr></thead><tbody>
+{% for room in calendar.rooms %}<tr><th>{{room.number}}<small class="d-block text-secondary">{{room.type}} · Tầng {{room.floor}}</small><small>{{status_label(room.status)}}</small></th>{% for cell in room.cells %}<td>{% if cell.maintenance %}<span class="status maintenance">Khóa bảo trì</span>{% endif %}{% for b in cell.bookings %}<a class="status {{b.status}} d-block mb-1" href="/bookings/{{b.id}}" title="{{b.code}} · {{cell.date}}">{{b.code}}</a>{% endfor %}{% if cell.can_book and user.role.value in ['admin','receptionist'] %}<a class="btn btn-sm btn-outline-primary" aria-label="Đặt phòng {{room.number}} ngày {{cell.date}}" href="/bookings?room_id={{room.id}}&check_in={{cell.date}}&check_out={{cell.next_date}}&guests={{guests}}#new">+</a>{% elif not cell.bookings %}<small class="text-secondary">—</small>{% endif %}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{calendar.days|length+1}}">Không có phòng phù hợp bộ lọc.</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="d-flex gap-3 align-items-center mt-3"><span>{{calendar.total}} phòng · Trang {{calendar.page}}/{{calendar.pages}}</span>{% if calendar.page>1 %}<button class="btn btn-light calendar-page" data-page="{{calendar.page-1}}">Trước</button>{% endif %}{% if calendar.page<calendar.pages %}<button class="btn btn-light calendar-page" data-page="{{calendar.page+1}}">Sau</button>{% endif %}</div>
+{% endblock %}
+{% block scripts %}<style>.calendar-scroll{max-height:65vh}.calendar-table th,.calendar-table td{min-width:115px;vertical-align:top}.calendar-table th:first-child{position:sticky;left:0;background:#fff;z-index:1;min-width:180px}.calendar-table thead th{position:sticky;top:0;background:#f8fafc;z-index:2}.calendar-table thead th:first-child{z-index:3}</style><script>
+const calendarForm=document.querySelector('form[method="get"]');calendarForm.onsubmit=e=>{e.preventDefault();const q=new URLSearchParams(new FormData(calendarForm)),type=document.getElementById('calendarType').value,floor=document.getElementById('calendarFloor').value;if(type)q.set('type_id',type);if(floor!=='')q.set('floor',floor);location.href='/calendar?'+q};document.querySelectorAll('.calendar-page').forEach(b=>b.onclick=()=>{const q=new URLSearchParams(location.search);q.set('page',b.dataset.page);location.href='/calendar?'+q});
+</script>{% endblock %}

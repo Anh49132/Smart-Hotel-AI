@@ -1,0 +1,5 @@
+{% extends 'layouts/print.html' %}{% block title %}Bản nháp AI #{{draft.id}}{% endblock %}{% block back %}<a href="/ai">Trợ lý AI</a>{% endblock %}{% block content %}
+<h1>Bản nháp AI #{{draft.id}}</h1><p>{{draft.kind}} · {{draft.email_kind}} · {{draft.review_status}}</p><div class="notice">Cần nhân viên kiểm tra. Đây không phải bằng chứng email đã gửi hoặc giao dịch đã thực hiện.</div>
+<div style="white-space:pre-wrap;overflow-wrap:anywhere;margin:24px 0">{{draft.content}}</div><p class="muted">Model: {{draft.model}} · Prompt: {{draft.prompt_version}}</p>
+{% if draft.source.booking_code %}<h2>Dữ liệu nghiệp vụ tại lúc soạn</h2><p>{{draft.source.booking_code}} · Phòng {{draft.source.room}} · {{draft.source.check_in}} → {{draft.source.check_out}} · {{draft.source.status}}</p>{% endif %}
+<h2>Lịch sử duyệt</h2>{% for r in draft.reviews %}<p>{{r.at}} UTC · Nhân viên #{{r.actor_id}} · {{'Đồng ý' if r.approved else 'Từ chối'}}</p>{% else %}<p>Chưa duyệt</p>{% endfor %}{% endblock %}

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-23",
+  "model": "gemini-3.5-flash-lite",
+  "data": "isolated synthetic hotel; no real customer data",
+  "requests_maximum": 4,
+  "results": [
+    {
+      "feature": "room_advice",
+      "status": "passed",
+      "content": "Phòng 302 · Deluxe Demo · 2 khách · 850,000.00 ₫/đêm bình quân · Tổng 1,700,000.00 ₫. Đủ sức chứa; Trong ngân sách từng đêm; Đáp ứng tiện ích yêu cầu; Còn trống theo khoảng ngày.\n\nGợi ý chưa giữ phòng. Giá và phòng trống được kiểm tra lại khi đặt."
+    },
+    {
+      "feature": "report",
+      "status": "passed",
+      "content": "Báo cáo 2026-10-01 đến trước 2026-10-24 (UTC+7)\n\nUTC+7; công suất theo lịch; công nợ hiện tại; hóa đơn và dòng tiền có mốc riêng\n\nCông suất theo lịch (%): 0.0\n\nĐêm phòng phân bổ: 0\n\nDoanh thu hóa đơn ròng trong kỳ (₫): 0.00\n\nThu tiền ròng trong kỳ (₫): 0\n\nHoàn tiền trong kỳ (₫): 0\n\nCông nợ hiện tại (₫): 0\n\nGợi ý cần quản lý duyệt: Cân nhắc ưu đãi ngày thường sau khi kiểm tra lịch còn trống và biên lợi nhuận.\n\nGợi ý cần quản lý duyệt: Cân nhắc gói ở dài ngày; quản lý cần duyệt giá và điều kiện áp dụng.\n\nẢnh chụp dữ liệu tại lúc yêu cầu, có thể thay đổi sau đó. Không tự áp dụng khuyến mại."
+    },
+    {
+      "feature": "email",
+      "status": "redactor_issue_found_and_fixed",
+      "content": "Tiêu đề: Xác nhận đặt phòng - BK-[ĐÃ ẨN]\n\nKính gửi Khách Demo AI,\n\nChúng tôi xin gửi thông tin xác nhận đặt phòng với mã số BK-[ĐÃ ẨN] như sau:\n\n- Loại phòng: Deluxe Demo\n- Số phòng: 302\n- Ngày nhận phòng (Check-in): 2026-10-26\n- Ngày trả phòng (Check-out): 2026-10-28\n- Trạng thái: Đã xác nhận (confirmed)\n\nTrân trọng,\nBộ phận Đặt phòng"
+    },
+    {
+      "feature": "email_after_redactor_fix",
+      "status": "draft_requires_human_review",
+      "content": "Tiêu đề: Xác nhận đặt phòng - BK-A1234567\n\nKính gửi Khách Demo AI,\n\nChúng tôi xin xác nhận thông tin đặt phòng của quý khách như sau:\n\n- Mã đặt phòng: BK-A1234567\n- Loại phòng: Deluxe Demo\n- Số phòng: 302\n- Ngày nhận phòng (Check-in): 2026-10-26\n- Ngày trả phòng (Check-out): 2026-10-28\n- Trạng thái: Đã xác nhận (confirmed)\n\nTrân trọng,\nBộ phận Đặt phòng",
+      "checks": [
+        "verified booking code preserved",
+        "dates match synthetic booking",
+        "no payment account or identity document"
+      ]
+    }
+  ]
+}

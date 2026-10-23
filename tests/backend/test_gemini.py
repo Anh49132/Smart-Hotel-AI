@@ -87,6 +87,9 @@ def test_email_uses_gemini_without_sensitive_customer_fields(client, db, transpo
     customer.email = "private@example.com"
     db.commit()
     booking = client.post("/api/bookings", json={"customer_id": 1, "room_id": 1, "check_in": "2030-11-01", "check_out": "2030-11-03", "guests": 2, "note": "PRIVATE_BOOKING_NOTE"}).json()
+    if kind=='cancellation':
+        from backend.models import Booking,BookingStatus
+        db.get(Booking,booking['id']).status=BookingStatus.cancelled;db.commit()
     response = client.post("/api/ai/email", json={"booking_id": booking["id"], "kind": kind})
     assert response.status_code == 200
     assert response.json()["content"] == TEXT
@@ -98,11 +101,17 @@ def test_email_uses_gemini_without_sensitive_customer_fields(client, db, transpo
 
 
 def test_room_advice_and_report_use_gemini(client, transport):
+    transport['response']=answer([{'text':json.dumps({'recommendations':[{'room_id':1,'stay_total':'1800000.00','reason_codes':['capacity','budget','amenities']}]})}])
     response = client.post("/api/ai/room-advice", json={"guests": 2, "budget": 1000000, "check_in": "2030-11-01", "check_out": "2030-11-03", "amenities": "Bồn tắm"})
     assert response.status_code == 200
-    assert response.json()["message"] == TEXT
+    assert response.json()['validated'] and '1,800,000.00' in response.json()['message']
     assert response.json()["rooms"][0]["number"] == "302"
-    assert client.get("/api/ai/report").json()["content"] == TEXT
+    payload=json.loads(transport['requests'][0].content)
+    assert payload['generationConfig']['responseMimeType']=='application/json'
+    assert 'responseJsonSchema' in payload['generationConfig']
+    transport['response']=answer([{'text':json.dumps({'highlights':[{'key':'occupancy','value':'0.0'}],'promotion_codes':[]})}])
+    report=client.get('/api/ai/report')
+    assert report.status_code==200 and 'Công suất' in report.json()['content']
     assert len(transport["requests"]) == 2
 
 

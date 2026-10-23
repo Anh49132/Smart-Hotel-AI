@@ -14,6 +14,19 @@ from .entities import (
     BookingStatusHistory,
     Payment,
     AIResult,
+    AIReviewEvent,
+    DemoSeed,
+    RatePlan,
+    BookingNight,
+    RoomStay,
+    BookingChange,
+    CleaningTask,
+    RoomBlock,
+    HotelPolicy,
+    BookingSurcharge,
+    MoneyEntry,
+    FinancialAdjustment,
+    CashierShift,
 )
 
-__all__ = ['Role', 'RoomStatus', 'BookingStatus', 'PaymentStatus', 'User', 'RoomType', 'Room', 'Customer', 'Booking', 'HotelService', 'ServiceUsage', 'Invoice', 'BookingStatusHistory', 'Payment', 'AIResult']
+__all__ = ['Role', 'RoomStatus', 'BookingStatus', 'PaymentStatus', 'User', 'RoomType', 'Room', 'Customer', 'Booking', 'HotelService', 'ServiceUsage', 'Invoice', 'BookingStatusHistory', 'Payment', 'AIResult', 'RatePlan', 'BookingNight']

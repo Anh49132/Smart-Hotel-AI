@@ -1,10 +1,13 @@
+from .inventory_service import blocked_rooms
 from .booking_service import ACTIVE_BOOKING_STATUSES
-from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType
+from .rates_service import quote
+from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType,Role,FinancialAdjustment
 from .gemini_client import generate_content, generate_text, sanitize_free_text
 from datetime import date
+from core.hotel_time import hotel_today
 from decimal import Decimal
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, case
 from sqlalchemy.orm import Session, selectinload
 
 import json
@@ -38,9 +41,9 @@ async def generate_chat(messages: list[dict], context: dict) -> str:
     return await generate_content(contents, system)
 
 
-def chatbot_context(db: Session) -> dict:
+def chatbot_context(db:Session,user=None)->dict:
     rooms = db.scalars(
-        select(Room).options(selectinload(Room.room_type)).order_by(Room.number)
+        select(Room).join(RoomType).where(RoomType.is_active.is_(True)).options(selectinload(Room.room_type)).order_by(Room.number)
     ).all()
     services = db.scalars(
         select(HotelService).where(HotelService.active == True).order_by(HotelService.name)
@@ -60,16 +63,14 @@ def chatbot_context(db: Session) -> dict:
     ) or 0
     arrivals_today = db.scalar(
         select(func.count(Booking.id)).where(
-            Booking.check_in == date.today(), Booking.status == BookingStatus.confirmed
+            Booking.check_in == hotel_today(), Booking.status == BookingStatus.confirmed
         )
     ) or 0
     outstanding = db.scalar(
-        select(func.coalesce(func.sum(Invoice.total - Invoice.paid_amount), 0)).where(
-            Invoice.paid_amount < Invoice.total
-        )
+        select(func.coalesce(func.sum(case((Invoice.total+func.coalesce(FinancialAdjustment.amount,0)>Invoice.paid_amount,Invoice.total+func.coalesce(FinancialAdjustment.amount,0)-Invoice.paid_amount),else_=0)),0)).outerjoin(FinancialAdjustment,FinancialAdjustment.booking_id==Invoice.booking_id)
     ) or 0
-    return {
-        "ngay_hien_tai": str(date.today()),
+    result = {
+        "ngay_hien_tai": str(hotel_today()),
         "tong_so_phong": len(rooms),
         "so_luong_theo_trang_thai": room_counts,
         "phong": [
@@ -91,42 +92,47 @@ def chatbot_context(db: Session) -> dict:
         "so_khach_du_kien_den_hom_nay": arrivals_today,
         "tong_tien_con_phai_thu": float(outstanding),
     }
+    if user is not None and user.role==Role.receptionist:result.pop('tong_tien_con_phai_thu',None)
+    return result
 
 
-async def hotel_chat(db: Session, messages) -> str:
+async def hotel_chat(db:Session,messages,user=None)->str:
     safe_messages = [
         {"role": message.role, "content": message.content}
         for message in messages[-12:]
     ]
-    return await generate_chat(safe_messages, chatbot_context(db))
+    return await generate_chat(safe_messages,chatbot_context(db,user))
 
 
 def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decimal):
-    blocked = select(Booking.room_id).where(Booking.status.in_(ACTIVE_BOOKING_STATUSES), Booking.check_in < check_out, check_in < Booking.check_out)
-    return db.scalars(select(Room).join(RoomType).where(Room.id.not_in(blocked), RoomType.capacity >= guests, RoomType.nightly_rate <= budget, Room.status != RoomStatus.maintenance)).all()
+    blocked = blocked_rooms(check_in, check_out)
+    rooms = db.scalars(select(Room).join(RoomType).where(Room.id.not_in(blocked), RoomType.capacity >= guests, RoomType.is_active.is_(True), Room.status != RoomStatus.maintenance)).all()
+    # A nightly budget is a ceiling for every night, including weekend/holiday prices.
+    prices = {}
+    result = []
+    for room in rooms:
+        if room.room_type_id not in prices:
+            prices[room.room_type_id] = quote(db, room.room_type, check_in, check_out)
+        if all(n['amount'] <= budget for n in prices[room.room_type_id]['nights']):
+            result.append(room)
+    return result
 
 
 async def advise_rooms(db: Session, data) -> dict:
-    rooms = available_rooms(db, data.check_in, data.check_out, data.guests, data.budget)
-    if not rooms:
-        return {"message": "Không có phòng phù hợp và còn trống trong khoảng ngày đã chọn.", "rooms": []}
-    safe = [{"number": sanitize_free_text(r.number), "type": sanitize_free_text(r.room_type.name), "capacity": r.room_type.capacity, "price": float(r.room_type.nightly_rate), "amenities": sanitize_free_text(r.room_type.amenities)} for r in rooms]
-    prompt = f"Nhu cầu: {data.guests} khách, ngân sách {data.budget}/đêm, từ {data.check_in} đến {data.check_out}, tiện ích: {sanitize_free_text(data.amenities) or 'không yêu cầu'}. Danh sách phòng trống: {json.dumps(safe, ensure_ascii=False)}"
-    return {"message": await generate_text(prompt, ROOM_SYSTEM), "rooms": safe[:3]}
+    from .room_advice import advise
+    return await advise(db,data)
 
 
 async def booking_email(db: Session, booking_id: int, kind: str) -> str:
-    booking = db.get(Booking, booking_id)
-    if not booking:
-        raise HTTPException(404, "Không tìm thấy đặt phòng")
-    safe = {"customer_name": sanitize_free_text(booking.customer.full_name), "booking_code": booking.code, "room": sanitize_free_text(booking.room.number), "room_type": sanitize_free_text(booking.room.room_type.name), "check_in": str(booking.check_in), "check_out": str(booking.check_out), "status": booking.status.value}
-    return await generate_text(f"Loại email: {kind}. Dữ liệu đặt phòng: {json.dumps(safe, ensure_ascii=False)}", EMAIL_SYSTEM)
+    from .email_service import draft_email
+    content,_=await draft_email(db,booking_id,kind)
+    return content
 
 
 async def ai_report(db: Session) -> str:
-    total_rooms = db.scalar(select(func.count(Room.id))) or 0
-    occupied = db.scalar(select(func.count(Room.id)).where(Room.status == RoomStatus.occupied)) or 0
-    revenue = db.scalar(select(func.coalesce(func.sum(Invoice.paid_amount), 0))) or 0
-    bookings = db.scalar(select(func.count(Booking.id)).where(Booking.status != BookingStatus.cancelled)) or 0
-    data = {"total_rooms": total_rooms, "occupied_rooms": occupied, "occupancy_percent": round(occupied / total_rooms * 100, 1) if total_rooms else 0, "paid_revenue": float(revenue), "active_bookings": bookings}
-    return await generate_text(f"Số liệu hiện tại: {json.dumps(data, ensure_ascii=False)}", REPORT_SYSTEM)
+    from .ai_reports import draft_report
+    from core.hotel_time import hotel_today
+    from datetime import timedelta
+    today=hotel_today()
+    content,_=await draft_report(db,today.replace(day=1),today+timedelta(days=1))
+    return content
