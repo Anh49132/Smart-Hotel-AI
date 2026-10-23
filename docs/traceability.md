@@ -8,11 +8,11 @@
 | Đặt/nhận/trả/hủy | booking/frontdesk services | test_business.py, test_booking_consistency.py, test_frontdesk.py |
 | Phòng trống ngày/khách/loại | availability/calendar/block | test_room_calendar.py, test_maintenance.py, test_booking_changes.py |
 | Dịch vụ/hóa đơn | invoice/folio | test_invoice_correctness.py, test_folios.py |
-| Cọc/thu/hoàn/chốt ca | money/refund/shift | test_deposits.py, test_refunds.py, test_shifts.py |
+| Cọc/thu/hoàn trực tiếp | money/refund | test_deposits.py, test_refunds.py, test_payments_without_shifts.py |
 | Công suất/doanh thu/đặt theo thời gian | operating reports, CSV | test_operating_reports.py |
 | Tư vấn phòng AI | room advice + Gemini | test_room_advice.py, test_gemini.py |
 | Email AI | email service, review history | test_email_history.py, test_gemini.py |
-| Báo cáo/khuyến mại/ca AI | ai_reports + ai limiter | test_ai_reports.py |
+| Báo cáo/khuyến mại AI | ai_reports + ai limiter | test_ai_reports.py |
 | CSDL/ràng buộc/migration/transfer | models, Alembic, scripts | test_integrity.py; tests/core/test_migrations.py, test_transfer.py, test_legacy_money.py |
 | Toàn luồng/đồng thời/quyền | backend + transaction | test_release_acceptance.py, test_operational_integration.py và concurrency trong các test tài chính/booking |
 | Seed/UX/PDF | demo service, page service, PDF | test_demo_seed.py; tests/web; docs/images; output/pdf |

@@ -2,7 +2,7 @@ import json
 from unittest.mock import AsyncMock
 import pytest
 from sqlalchemy import select,func
-from backend.models import AIResult,CashierShift,Role
+from backend.models import AIResult,Role
 from core.ai_limiter import AIBudget
 from fastapi import HTTPException
 from tests.backend.test_staff_security import staff,token
@@ -21,18 +21,6 @@ def test_report_is_grounded_and_rejects_invented_values(client,db,monkeypatch):
     assert db.scalar(select(func.count()).select_from(AIResult))==1
     clerk=staff(db,Role.receptionist);client.cookies.set('access_token',token(clerk))
     assert client.post(url,json={}).status_code==403
-
-
-def test_handover_scope_excludes_notes_and_references(client,db,monkeypatch):
-    mocked=AsyncMock(return_value=json.dumps({'focus':['cash','pending']}))
-    monkeypatch.setattr('backend.services.ai_reports.generate_structured',mocked)
-    db.get(CashierShift,1).note='PRIVATE_STAFF_HANDOVER_NOTE';db.commit()
-    result=client.post('/api/ai/handover/1',json={})
-    assert result.status_code==200 and 'Tiền mặt' in result.json()['content']
-    assert 'PRIVATE_STAFF_HANDOVER_NOTE' not in mocked.call_args.args[0]
-    clerk=staff(db,Role.receptionist);client.cookies.set('access_token',token(clerk))
-    assert client.post('/api/ai/handover/1',json={}).status_code==403
-    assert mocked.await_count==1
 
 
 def test_ai_budget_limits_inflight_and_rate():

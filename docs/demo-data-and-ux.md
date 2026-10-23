@@ -2,7 +2,7 @@
 
 Chỉ bật `DEMO_MODE=true` cho CSDL minh họa riêng. Bật `DEMO_SEED_ON_START=true` và đặt `DEMO_STAFF_PASSWORD` riêng từ 12 ký tự (tối đa 72 byte UTF-8) để seed khi khởi động; hoặc chạy `python -m scripts.seed_demo` với DEMO_MODE và mật khẩu được cấu hình. Không ghi mật khẩu vào Git. Staff phải đổi mật khẩu tạm ở lần đăng nhập đầu. Production vẫn yêu cầu SECRET_KEY và BOOTSTRAP_ADMIN_PASSWORD riêng, không dùng Admin@123.
 
-Seed v1 gồm 12 phòng/3 loại, 8 hồ sơ khách giả, 3 dịch vụ, 21 booking nhiều tháng và đủ confirmed/checked_in/checked_out/cancelled/no_show, cọc/thu/hoàn/điều chỉnh, ca tổng hợp giả đã đóng, một việc dọn và một khoảng bảo trì. Tên/mã có DEMO để nhận biết. Ngày neo là ngày khách sạn tại lần seed đầu; không tự dịch lịch sau mỗi lần khởi động. Không suy diễn ca tổng hợp thành ca làm việc thật.
+Seed v1 gồm 12 phòng/3 loại, 8 hồ sơ khách giả, 3 dịch vụ, 21 booking nhiều tháng và đủ confirmed/checked_in/checked_out/cancelled/no_show, cọc/thu/hoàn/điều chỉnh, một việc dọn và một khoảng bảo trì. Tên/mã có DEMO để nhận biết. Ngày neo là ngày khách sạn tại lần seed đầu; không tự dịch lịch sau mỗi lần khởi động. Seed hiện tại không tạo ca thu ngân; bản demo đã seed từ trước giữ ca cũ như dữ liệu lưu trữ, không sử dụng trong thanh toán.
 
 `demo_seeds` ghi marker. Chạy lại không đổi ngày, tạo trùng, reset mật khẩu hoặc sửa các booking nhân viên vừa tạo. Không cho seed mới vào nơi đã có phòng/booking. Cần một CSDL demo mới để làm lại hoàn toàn; không có nút xóa dữ liệu vận hành. Kịch bản ngày báo cáo nên tạo một booking mới theo ngày hiện tại từ phòng còn trống, không cố check-in lịch mẫu đã qua ngày.
 
