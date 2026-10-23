@@ -36,3 +36,13 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Test: thu hồi token sau đổi/reset/khóa/đổi quyền, đổi mật khẩu tạm, tự bảo vệ admin, ma trận ba vai trò, cookie/Origin, giới hạn login và migration. Kết quả cả bộ được cập nhật sau chạy.
 
 - Kết quả đợt R01–C04: SQLite 82 passed/2 skipped; PostgreSQL 84 passed, gồm migration roundtrip, transfer và đồng thời. DB local 0002→0006 đã có backup, đối chiếu số dòng/tổng tiền và kiểm tra FK/integrity đạt. Không deploy hoặc gọi Gemini thật trong bộ test.
+
+
+## C05 — Loại phòng và giá theo ngày
+
+- AI hỗ trợ CRUD loại phòng, ngừng bán giữ lịch sử, giá thường/cuối tuần và chương trình giá đặc biệt theo khoảng [bắt đầu, kết thúc). Thứ Bảy/Chủ nhật là cuối tuần; giá đặc biệt ưu tiên cao nhất, không cho hai khoảng đặc biệt đang áp dụng trùng nhau.
+- Khóa loại phòng trước khi sửa giá/kiểm tra khoảng trùng; booking khóa phòng rồi loại phòng, lưu từng đêm vào booking_nights. Hóa đơn dùng tổng snapshot; giá trung bình chỉ để tương thích hiển thị. Legacy không tự bịa giá từng đêm, tiếp tục dùng giá đã lưu ở 0005.
+- Giao diện /rates cho admin, backend kiểm tra sức chứa với booking hiệu lực. Phòng ngừng bán không được đặt mới hoặc gợi ý AI; booking cũ vẫn phục vụ. AI kiểm tra ngân sách cho từng đêm thực tế.
+- Kiểm chứng: giá cuối tuần/ngày đặc biệt, sát biên, bảng giá trùng đồng thời, sửa bảng giá sau đặt, thiếu snapshot, sức chứa, ngừng bán, quyền và migration SQLite/PostgreSQL. Không gọi Gemini thật.
+
+- Kết quả C05: toàn bộ SQLite 90 passed/2 skipped; PostgreSQL 92 passed trên schema riêng. Chưa triển khai Render.

@@ -1,0 +1,39 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Loại phòng & bảng giá{% endblock %}
+{% block content %}
+<div class="page-head"><div><p class="eyebrow">QUẢN TRỊ</p><h1>Loại phòng & bảng giá</h1><p>Ưu tiên: giá đặc biệt → cuối tuần (thứ Bảy, Chủ nhật) → giá thường. Ngày kết thúc không tính vào khoảng giá.</p></div><a class="btn btn-outline-primary" href="/rooms">Thêm loại phòng tại màn hình Phòng</a></div>
+<div class="row g-4">
+<div class="col-lg-6"><div class="panel p-4"><h2 class="h5">Cập nhật loại phòng</h2>
+<form id="typeEditForm" class="row g-3">
+<div class="col-12"><label class="form-label" for="typeId">Loại phòng</label><select class="form-select" id="typeId" required><option value="">Chọn loại phòng</option>{% for t in room_types %}<option value="{{t.id}}">{{t.name}}{{' (ngừng bán)' if not t.is_active else ''}}</option>{% endfor %}</select></div>
+<div class="col-12"><label class="form-label">Tên</label><input class="form-control" name="name" maxlength="80" required></div>
+<div class="col-4"><label class="form-label">Sức chứa</label><input class="form-control" name="capacity" type="number" min="1" max="20" required></div>
+<div class="col-4"><label class="form-label">Giá thường</label><input class="form-control" name="nightly_rate" type="number" step="0.01" min="0.01" required></div>
+<div class="col-4"><label class="form-label">Giá cuối tuần</label><input class="form-control" name="weekend_rate" type="number" step="0.01" min="0.01" placeholder="Dùng giá thường"></div>
+<div class="col-12"><label class="form-label">Tiện ích</label><textarea class="form-control" name="amenities"></textarea></div>
+<div class="col-12"><label><input name="is_active" type="checkbox" checked> Đang bán</label><p class="text-secondary mt-2">Ngừng bán chặn đặt mới, vẫn giữ và phục vụ các đặt phòng đã xác nhận. Giảm sức chứa phải phù hợp đặt phòng hiện có.</p></div>
+<div class="col-12"><button class="btn btn-primary">Lưu loại phòng</button><button class="btn btn-outline-danger" type="button" id="deleteType">Xóa loại chưa sử dụng</button></div>
+</form></div></div>
+<div class="col-lg-6"><div class="panel p-4"><h2 class="h5">Giá đặc biệt theo ngày</h2>
+<form id="planForm" class="row g-3"><input name="id" type="hidden">
+<div class="col-12"><label class="form-label">Loại phòng</label><select class="form-select" name="room_type_id" required>{% for t in room_types %}<option value="{{t.id}}">{{t.name}}</option>{% endfor %}</select></div>
+<div class="col-12"><label class="form-label">Tên chương trình</label><input class="form-control" name="name" maxlength="100" required></div>
+<div class="col-6"><label class="form-label">Từ đêm</label><input class="form-control" name="start_date" type="date" required></div>
+<div class="col-6"><label class="form-label">Đến trước ngày</label><input class="form-control" name="end_date" type="date" required></div>
+<div class="col-12"><label class="form-label">Giá mỗi đêm</label><input class="form-control" name="nightly_rate" type="number" step="0.01" min="0.01" required></div>
+<div class="col-12"><label><input name="is_active" type="checkbox" checked> Áp dụng</label></div>
+<div class="col-12"><button class="btn btn-primary">Lưu giá đặc biệt</button><button type="reset" class="btn btn-light">Tạo mới</button></div>
+</form></div></div></div>
+<div class="panel mt-4"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Loại phòng / chương trình</th><th>Khoảng ngày</th><th>Giá / đêm</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+{% for p in plans %}<tr><td>{{type_names[p.room_type_id]}}<br><b>{{p.name}}</b></td><td>{{p.start_date}} → {{p.end_date}} (không gồm ngày cuối)</td><td>{{'{:,.2f}'.format(p.nightly_rate)}} ₫</td><td>{{'Áp dụng' if p.is_active else 'Ngừng áp dụng'}}</td><td><button class="btn btn-sm btn-outline-primary edit-plan" data-id="{{p.id}}" data-type="{{p.room_type_id}}" data-name="{{p.name}}" data-start="{{p.start_date}}" data-end="{{p.end_date}}" data-price="{{p.nightly_rate}}" data-active="{{1 if p.is_active else 0}}">Chỉnh sửa</button></td></tr>{% else %}<tr><td colspan="5" class="empty">Chưa có giá đặc biệt.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}<script>
+const typeEdit=document.getElementById('typeEditForm'),typeId=document.getElementById('typeId'),planForm=document.getElementById('planForm');
+typeId.onchange=async()=>{if(!typeId.value)return;try{const types=await apiRequest('/api/room-types'),t=types.find(t=>t.id===+typeId.value);for(const k of ['name','capacity','nightly_rate','amenities','weekend_rate'])typeEdit.elements[k].value=t[k]??'';typeEdit.elements.is_active.checked=t.is_active}catch(err){showToast(err.message,false)}};
+typeEdit.onsubmit=async e=>{e.preventDefault();if(!typeId.value)return;const d=formJSON(typeEdit);d.capacity=+d.capacity;d.is_active=typeEdit.elements.is_active.checked;d.weekend_rate=d.weekend_rate||null;const b=e.submitter;b.disabled=true;try{await apiRequest(`/api/room-types/${typeId.value}`,{method:'PUT',body:JSON.stringify(d)});showToast('Đã lưu loại phòng');setTimeout(()=>location.reload(),500)}catch(err){showToast(err.message,false)}finally{b.disabled=false}};
+document.getElementById('deleteType').onclick=async()=>{if(!typeId.value||!confirm('Chỉ xóa loại chưa có phòng/bảng giá. Tiếp tục?'))return;try{await apiRequest(`/api/room-types/${typeId.value}`,{method:'DELETE'});location.reload()}catch(err){showToast(err.message,false)}};
+planForm.onreset=()=>{planForm.elements.id.value='';planForm.elements.room_type_id.disabled=false};
+document.querySelectorAll('.edit-plan').forEach(b=>b.onclick=()=>{const d=b.dataset,f=planForm.elements;f.id.value=d.id;f.room_type_id.value=d.type;f.room_type_id.disabled=true;f.name.value=d.name;f.start_date.value=d.start;f.end_date.value=d.end;f.nightly_rate.value=d.price;f.is_active.checked=d.active==='1';planForm.scrollIntoView({behavior:'smooth',block:'center'})});
+planForm.onsubmit=async e=>{e.preventDefault();const d=formJSON(planForm),id=planForm.elements.id.value,type=planForm.elements.room_type_id.value;delete d.id;delete d.room_type_id;d.is_active=planForm.elements.is_active.checked;const b=e.submitter;b.disabled=true;try{await apiRequest(`/api/room-types/${type}/rate-plans${id?'/'+id:''}`,{method:id?'PUT':'POST',body:JSON.stringify(d)});showToast('Đã lưu bảng giá');setTimeout(()=>location.reload(),500)}catch(err){showToast(err.message,false)}finally{b.disabled=false}};
+</script>{% endblock %}

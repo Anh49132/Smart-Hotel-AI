@@ -2,7 +2,7 @@ from core.database import Base
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint, true, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class Role(str, Enum):
@@ -40,18 +40,32 @@ class User(Base):
     role: Mapped[Role] = mapped_column(SQLEnum(Role))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     token_version: Mapped[int] = mapped_column(default=0, server_default="0")
-    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
 
 class RoomType(Base):
     __tablename__ = "room_types"
-    __table_args__ = (CheckConstraint("capacity > 0", name="ck_room_type_capacity"), CheckConstraint("nightly_rate > 0", name="ck_room_type_rate"))
+    __table_args__ = (CheckConstraint("capacity > 0", name="ck_room_type_capacity"), CheckConstraint("nightly_rate > 0", name="ck_room_type_rate"), CheckConstraint("weekend_rate IS NULL OR weekend_rate > 0", name="ck_room_type_weekend"))
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True)
     capacity: Mapped[int]
     nightly_rate: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    weekend_rate: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default=true())
     amenities: Mapped[str] = mapped_column(Text, default="")
     rooms: Mapped[list["Room"]] = relationship(back_populates="room_type")
+
+
+class RatePlan(Base):
+    __tablename__ = 'rate_plans'
+    __table_args__ = (CheckConstraint('end_date > start_date', name='ck_rate_plan_dates'), CheckConstraint('nightly_rate > 0', name='ck_rate_plan_price'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    room_type_id: Mapped[int] = mapped_column(ForeignKey('room_types.id'), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    nightly_rate: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
 
 class Room(Base):
@@ -96,6 +110,16 @@ class Booking(Base):
     service_usages: Mapped[list["ServiceUsage"]] = relationship(back_populates="booking", cascade="all, delete-orphan")
     invoice: Mapped["Invoice"] = relationship(back_populates="booking", uselist=False)
     status_history: Mapped[list["BookingStatusHistory"]] = relationship(back_populates="booking", order_by="BookingStatusHistory.changed_at")
+
+
+class BookingNight(Base):
+    __tablename__ = 'booking_nights'
+    __table_args__ = (UniqueConstraint('booking_id', 'stay_date', name='uq_booking_night'), CheckConstraint('amount >= 0', name='ck_booking_night_amount'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    booking_id: Mapped[int] = mapped_column(ForeignKey('bookings.id'), index=True)
+    stay_date: Mapped[date] = mapped_column(Date)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    source: Mapped[str] = mapped_column(String(120))
 
 
 class HotelService(Base):

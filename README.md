@@ -103,3 +103,12 @@ Khi triển khai HTTPS, đặt `APP_ENV=production`, `SECRET_KEY` ngẫu nhiên 
 ## Nhánh phát triển
 
 Git Flow: `main → dev → feature/...`. Tách feature từ dev, kiểm thử rồi nhập lại dev; nghiệm thu đợt rồi PR dev → main để phát hành. Render theo main. Xem [kế hoạch và phân công](docs/ke-hoach-hoan-thien-2-nguoi.md). Các merge local không thay thế review thực tế bằng tài khoản GitHub của người còn lại.
+
+
+## Loại phòng và giá theo ngày (C05)
+
+Admin mở **Loại phòng & bảng giá** (`/rates`) để sửa tên/tiện ích/sức chứa, giá thường, giá cuối tuần và trạng thái đang bán. Ngừng bán giữ lịch sử và booking đã xác nhận; chỉ xóa loại chưa có phòng hoặc bảng giá.
+
+Giá đặc biệt áp dụng từ ngày bắt đầu đến trước ngày kết thúc, ưu tiên hơn giá cuối tuần (thứ Bảy/Chủ nhật), sau đó mới dùng giá thường. Hai khoảng giá đặc biệt đang áp dụng không được trùng nhau. Bỏ chọn Áp dụng để ngừng chương trình. Booking mới lưu chi tiết giá từng đêm; sửa giá/tên chương trình sau đó không đổi tiền đã chốt. Đặt mới tối đa 365 đêm và tổng tiền phòng trong giới hạn hóa đơn. Danh sách phòng hiển thị giá trung bình/đêm kèm tổng tiền; AI dùng giá thực tế từng đêm để kiểm tra ngân sách.
+
+Chạy `python -m alembic upgrade head` để lên revision 0007 sau khi sao lưu DB. Booking legacy không được tự dựng giá đêm chưa từng lưu; xem docs/postgresql.md.

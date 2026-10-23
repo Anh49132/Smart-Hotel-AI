@@ -1,5 +1,6 @@
 from backend.dependencies import get_current_user, require_roles
-from backend.models import Role
+from backend.models import Role, RoomType, RatePlan
+from sqlalchemy import select
 from backend.services.auth_service import authenticate
 from backend.services.page_service import ai_page_context, bookings_page_context, customers_page_context, dashboard_context, invoices_page_context, reports_page_context, rooms_page_context, services_page_context, users_page_context
 from core.config import FRONTEND_DIR
@@ -55,6 +56,13 @@ def dashboard(request: Request, user=Depends(get_current_user), db: Session = De
 @router.get("/rooms", response_class=HTMLResponse)
 def rooms_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     return templates.TemplateResponse('pages/rooms.html', page_context(request, user, 'rooms', **rooms_page_context(db)))
+
+
+@router.get('/rates', response_class=HTMLResponse)
+def rates_page(request: Request, user=Depends(require_roles(Role.admin)), db: Session = Depends(get_db)):
+    types = db.scalars(select(RoomType).order_by(RoomType.name)).all()
+    plans = db.scalars(select(RatePlan).order_by(RatePlan.start_date)).all()
+    return templates.TemplateResponse('pages/rates.html', page_context(request, user, 'rates', room_types=types, plans=plans, type_names={t.id:t.name for t in types}))
 
 
 @router.get("/bookings", response_class=HTMLResponse)

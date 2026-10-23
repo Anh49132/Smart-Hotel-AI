@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from typing import Optional
 from .transactions import lock_room, write_transaction
+from .rates_service import lock_room_type, quote
 
 
 def validate_physical_status(db, room_id, status):
@@ -22,9 +23,21 @@ def list_rooms(check_in: Optional[date], check_out: Optional[date], guests: int,
         if check_out <= check_in:
             raise HTTPException(422, 'Ngày trả phải sau ngày nhận')
         blocked = select(Booking.room_id).where(Booking.status.in_((BookingStatus.confirmed, BookingStatus.checked_in)), Booking.check_in < check_out, check_in < Booking.check_out)
-        query = query.where(Room.id.not_in(blocked), Room.status != RoomStatus.maintenance, RoomType.capacity >= guests)
+        query = query.where(Room.id.not_in(blocked), Room.status != RoomStatus.maintenance, RoomType.capacity >= guests, RoomType.is_active.is_(True))
     rooms = db.scalars(query).all()
-    return [{'id': r.id, 'number': r.number, 'floor': r.floor, 'status': r.status.value, 'room_type': {'id': r.room_type.id, 'name': r.room_type.name, 'capacity': r.room_type.capacity, 'nightly_rate': float(r.room_type.nightly_rate)}} for r in rooms]
+    results = []
+    quotes = {}
+    for r in rooms:
+        prices = None
+        if check_in and check_out:
+            if r.room_type_id not in quotes:
+                quotes[r.room_type_id] = quote(db, r.room_type, check_in, check_out)
+            prices = quotes[r.room_type_id]
+        results.append({'id': r.id, 'number': r.number, 'floor': r.floor, 'status': r.status.value,
+            'room_type': {'id': r.room_type.id, 'name': r.room_type.name, 'capacity': r.room_type.capacity,
+                          'nightly_rate': float(prices['average'] if prices else r.room_type.nightly_rate), 'is_active': r.room_type.is_active},
+            'stay_total': prices['total'] if prices else None})
+    return results
 
 def add_room_type(data: RoomTypeIn, db: Session):
     item = RoomType(**data.model_dump())
@@ -55,9 +68,7 @@ def update_room(room_id: int, data: RoomIn, db: Session):
         room = lock_room(db, room_id)
         if not room:
             raise HTTPException(404, 'Không tìm thấy phòng')
-        room_type = db.get(RoomType, data.room_type_id)
-        if not room_type:
-            raise HTTPException(404, 'Không tìm thấy loại phòng')
+        room_type = lock_room_type(db, data.room_type_id)
         validate_physical_status(db, room_id, data.status)
         oversized = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status.in_((BookingStatus.confirmed, BookingStatus.checked_in)), Booking.guests > room_type.capacity).limit(1))
         if oversized:
