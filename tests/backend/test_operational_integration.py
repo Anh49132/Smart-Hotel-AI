@@ -13,7 +13,7 @@ from tests.backend.test_booking_consistency import data,concurrent
 
 def test_shortening_below_paid_total_rolls_back_nights_segments_and_invoice(db):
     booking=create_booking(db,data())
-    inv=calculate(booking.id,None,db);pay(inv.id,PaymentIn(amount=1700000),db)
+    inv=calculate(booking.id,None,db);pay(inv.id,PaymentIn(amount=1700000),db,actor_id=1)
     proposed=BookingChangeIn(room_id=1,check_in='2030-01-10',check_out='2030-01-11',reason='Khách muốn về sớm',expected_total=900000)
     with pytest.raises(HTTPException):change_booking(db,booking.id,proposed,1)
     db.refresh(booking);db.refresh(inv)

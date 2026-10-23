@@ -2,7 +2,7 @@ from core.database import Base
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint, true, false
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint, true, false, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class Role(str, Enum):
@@ -258,7 +258,25 @@ class MoneyEntry(Base):
     reason: Mapped[str]=mapped_column(String(500),server_default='')
     request_key: Mapped[str]=mapped_column(String(64))
     actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'),nullable=True)
+    shift_id: Mapped[int]=mapped_column(ForeignKey('cashier_shifts.id'),nullable=True,index=True)
     occurred_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+
+
+class CashierShift(Base):
+    __tablename__='cashier_shifts'
+    __table_args__=(CheckConstraint("status IN ('open','closed')",name='ck_shift_status'),CheckConstraint('opening_cash >= 0 AND (counted_cash IS NULL OR counted_cash >= 0)',name='ck_shift_amounts'),Index('uq_shift_open_cashier','cashier_id',unique=True,sqlite_where=text("status='open'"),postgresql_where=text("status='open'")))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    cashier_id: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    status: Mapped[str]=mapped_column(String(10),default='open')
+    opened_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    closed_at: Mapped[datetime]=mapped_column(DateTime,nullable=True)
+    opening_cash: Mapped[Decimal]=mapped_column(Numeric(12,2))
+    counted_cash: Mapped[Decimal]=mapped_column(Numeric(12,2),nullable=True)
+    expected_cash: Mapped[Decimal]=mapped_column(Numeric(14,2),nullable=True)
+    difference: Mapped[Decimal]=mapped_column(Numeric(14,2),nullable=True)
+    handed_to: Mapped[int]=mapped_column(ForeignKey('users.id'),nullable=True)
+    note: Mapped[str]=mapped_column(String(2000),default='')
+    snapshot_json: Mapped[str]=mapped_column(Text,default='{}')
 
 
 class AIResult(Base):

@@ -52,13 +52,13 @@ def test_zero_total_is_paid_and_cannot_take_money(db):
     invoice=issue(booking.id,Decimal('1800000'),db)
     assert invoice.payment_status == PaymentStatus.paid
     with pytest.raises(HTTPException):
-        pay(invoice.id,PaymentIn(amount=1),db)
+        pay(invoice.id,PaymentIn(amount=1),db,actor_id=1)
 
 
 def test_cannot_discount_below_paid_or_cancel_invoiced_booking(db):
     booking=create_booking(db,data())
     invoice=issue(booking.id,None,db)
-    pay(invoice.id,PaymentIn(amount=1000000),db)
+    pay(invoice.id,PaymentIn(amount=1000000),db,actor_id=1)
     with pytest.raises(HTTPException):
         issue(booking.id,Decimal('900000'),db)
     with pytest.raises(HTTPException):
@@ -69,7 +69,7 @@ def test_concurrent_payments_cannot_overpay(db):
     booking=create_booking(db,data())
     invoice=issue(booking.id,None,db)
     invoice_id=invoice.id
-    results=concurrent(lambda session,index:pay(invoice_id,PaymentIn(amount=1000000),session))
+    results=concurrent(lambda session,index:pay(invoice_id,PaymentIn(amount=1000000),session,actor_id=1))
     assert sorted(results)==[200,400]
     db.refresh(invoice)
     assert invoice.paid_amount == Decimal('1000000')

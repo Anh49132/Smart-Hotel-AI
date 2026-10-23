@@ -65,11 +65,14 @@ def receipt(db,booking_id,data,actor_id=None):
             raise HTTPException(409,'Số đã thu chưa khớp sổ giao dịch; cần đối chiếu dữ liệu cũ')
         total=charge_total(db,booking)
         if net+data.amount>total:raise HTTPException(400,'Số tiền thu vượt số dư còn phải thu')
+        from .shifts_service import current_shift
+        shift=current_shift(db,actor_id,lock=True)
         mirror=None
         if invoice and data.kind=='payment':
             mirror=Payment(invoice_id=invoice.id,amount=data.amount,paid_by=actor_id)
             db.add(mirror);db.flush()
         entry=MoneyEntry(booking_id=booking_id,payment_id=mirror.id if mirror else None,amount=data.amount,kind=data.kind,method=data.method,reference=data.reference,request_key=key,actor_id=actor_id)
+        entry.shift_id=shift.id
         db.add(entry)
         if invoice:
             invoice.paid_amount=net+data.amount
