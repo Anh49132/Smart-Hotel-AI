@@ -158,6 +158,21 @@ class CleaningTask(Base):
     inspected_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
 
 
+class RoomBlock(Base):
+    __tablename__='room_blocks'
+    __table_args__=(CheckConstraint('end_date > start_date',name='ck_block_dates'),CheckConstraint("status IN ('open','in_progress','resolved','cancelled')",name='ck_block_status'),Index('ix_block_overlap','room_id','start_date','end_date'))
+    id: Mapped[int]=mapped_column(primary_key=True)
+    room_id: Mapped[int]=mapped_column(ForeignKey('rooms.id'))
+    start_date: Mapped[date]=mapped_column(Date)
+    end_date: Mapped[date]=mapped_column(Date)
+    description: Mapped[str]=mapped_column(String(500))
+    status: Mapped[str]=mapped_column(String(20),default='open')
+    assigned_to: Mapped[int]=mapped_column(ForeignKey('users.id'),nullable=True)
+    created_by: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    created_at: Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    resolved_at: Mapped[datetime]=mapped_column(DateTime,nullable=True)
+
+
 class HotelService(Base):
     __tablename__ = "services"
     __table_args__ = (CheckConstraint("price > 0", name="ck_service_price"),)

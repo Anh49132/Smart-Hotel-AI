@@ -77,3 +77,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Thêm role housekeeping và task pending→in_progress→inspection→ready; checkout/đổi phòng tạo việc trong cùng transaction. Khóa phòng khi phân công/chuyển trạng thái, chỉ supervisor kiểm tra cuối, không cho đặt trạng thái sẵn sàng để bỏ qua việc chưa hoàn tất.
 - Housekeeping chỉ truy cập việc được giao và tài khoản cá nhân, không nhận khách/hóa đơn/AI. UI theo vai trò, admin cấp tài khoản buồng phòng. Migration giữ các phòng cleaning cũ dưới dạng pending, không dựng thời gian hoàn thành.
 - Test checkout→phân công→dọn→kiểm tra, chặn vượt quyền/API và render; kiểm tra enum PostgreSQL với migration roundtrip. Downgrade từ chối nếu còn tài khoản housekeeping thay vì làm mất dữ liệu vai trò.
+
+
+## C10 — Bảo trì và khóa bán theo ngày
+
+- Phiếu sự cố có người phụ trách, trạng thái và thời gian xử lý; khoảng khóa [bắt đầu,kết thúc) không được chồng booking/khóa hiện có. Tạo block và tạo booking khóa cùng phòng để tránh race.
+- Inventory chung cấp cho đặt/sửa booking, API phòng trống, lịch và AI; phòng dọn chưa được kiểm tra sẵn sàng khi còn khóa hôm nay. Khóa hết khoảng ngày không chặn lịch tương lai. Trạng thái vật lý maintenance thủ công vẫn là khóa vô thời hạn cho tới xử lý.
+- Test cả ba đường phòng trống/lịch/AI, không ghi đè booking, sát ngày cuối và hai session tạo block cùng booking; kèm migration PostgreSQL/SQLite.

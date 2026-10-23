@@ -1,5 +1,6 @@
 from backend.dependencies import get_current_user, require_roles
-from backend.models import Role, RoomType, RatePlan, User
+from backend.models import Role, RoomType, RatePlan, User, Room
+from backend.services.maintenance_service import blocks
 from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
@@ -58,6 +59,11 @@ def account_page(request: Request, user=Depends(get_current_user)):
 def housekeeping_page(request:Request,user=Depends(require_roles(Role.admin,Role.receptionist,Role.housekeeping)),db:Session=Depends(get_db)):
     staff=db.scalars(select(User).where(User.role==Role.housekeeping,User.is_active.is_(True))).all() if user.role!=Role.housekeeping else []
     return templates.TemplateResponse('pages/housekeeping.html',page_context(request,user,'housekeeping',tasks=list_tasks(db,user),staff=staff))
+
+
+@router.get('/maintenance',response_class=HTMLResponse)
+def maintenance_page(request:Request,user=Depends(require_roles(Role.admin,Role.receptionist)),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/maintenance.html',page_context(request,user,'maintenance',blocks=blocks(db),rooms=db.scalars(select(Room).order_by(Room.number)).all(),staff=db.scalars(select(User).where(User.role.in_((Role.admin,Role.receptionist)),User.is_active.is_(True))).all()))
 
 
 @router.get("/", response_class=HTMLResponse)

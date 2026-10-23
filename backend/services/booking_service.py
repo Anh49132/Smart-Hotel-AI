@@ -63,6 +63,11 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
         if action == 'cancel' and booking.invoice is not None:
             raise HTTPException(409, 'Đặt phòng đã có hóa đơn; cần xử lý điều chỉnh/hoàn tiền trước khi hủy')
         if action == 'check-in':
+            from .inventory_service import maintenance_blocks
+            from core.hotel_time import hotel_today
+            from datetime import timedelta
+            if maintenance_blocks(db,room_id,hotel_today(),hotel_today()+timedelta(days=1)):
+                raise HTTPException(409,'Phòng đang khóa bảo trì hôm nay')
             other = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status == BookingStatus.checked_in, Booking.id != booking_id).limit(1))
             if room.status != RoomStatus.available or other or open_task(db,room_id):
                 raise HTTPException(409, 'Phòng chưa sẵn sàng nhận khách hoặc vẫn có khách đang lưu trú')

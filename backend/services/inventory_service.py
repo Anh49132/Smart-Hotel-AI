@@ -1,6 +1,6 @@
 """Half-open room allocation intervals, including historical room moves."""
 from sqlalchemy import select, union
-from backend.models import Booking, BookingStatus, RoomStay
+from backend.models import Booking, BookingStatus, RoomStay, RoomBlock
 
 ACTIVE = (BookingStatus.confirmed, BookingStatus.checked_in)
 
@@ -13,7 +13,12 @@ def blocked_rooms(check_in, check_out, exclude_id=None):
     if exclude_id:
         segments = segments.where(Booking.id != exclude_id)
         legacy = legacy.where(Booking.id != exclude_id)
-    return union(segments, legacy)
+    maintenance=select(RoomBlock.room_id).where(RoomBlock.status.in_(('open','in_progress')),RoomBlock.start_date<check_out,RoomBlock.end_date>check_in)
+    return union(segments, legacy, maintenance)
+
+
+def maintenance_blocks(db,room_id,start,end):
+    return db.scalar(select(RoomBlock.id).where(RoomBlock.room_id==room_id,RoomBlock.status.in_(('open','in_progress')),RoomBlock.start_date<end,RoomBlock.end_date>start).limit(1)) is not None
 
 
 def room_available(db, room_id, check_in, check_out, exclude_id=None):

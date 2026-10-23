@@ -46,6 +46,11 @@ def task_action(db,task_id,action,user,assigned_to=None):
         elif action=='complete' and task.status=='in_progress':
             task.status='inspection';task.completed_at=now
         elif action=='inspect' and task.status=='inspection':
+            from .inventory_service import maintenance_blocks
+            from core.hotel_time import hotel_today
+            from datetime import timedelta
+            if maintenance_blocks(db,room_id,hotel_today(),hotel_today()+timedelta(days=1)):
+                raise HTTPException(409,'Phòng còn trong thời gian khóa bảo trì')
             if not supervisor: raise HTTPException(403,'Lễ tân/quản trị viên cần kiểm tra phòng')
             if room.status in (RoomStatus.occupied,RoomStatus.maintenance) or db.scalar(select(Booking.id).where(Booking.room_id==room_id,Booking.status==BookingStatus.checked_in).limit(1)):
                 raise HTTPException(409,'Phòng đang có khách hoặc bảo trì')

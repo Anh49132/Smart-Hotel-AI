@@ -1,4 +1,4 @@
-from . import ai, bookings, customers, invoices, rooms, services, users, housekeeping
+from . import ai, bookings, customers, invoices, rooms, services, users, housekeeping, maintenance
 from backend.dependencies import get_current_user
 from fastapi import APIRouter, Depends
 
@@ -11,3 +11,4 @@ router.include_router(invoices.router)
 router.include_router(ai.router)
 router.include_router(users.router)
 router.include_router(housekeeping.router)
+router.include_router(maintenance.router)
