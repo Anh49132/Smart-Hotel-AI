@@ -67,7 +67,11 @@ def refund(db,booking_id,data,user):
         if inv and inv.paid_amount!=net:raise HTTPException(409,'Cần đối chiếu số đã thu trước khi hoàn')
         maximum=max(Decimal(0),net-charge_total(db,b)) if b.status in (BookingStatus.cancelled,BookingStatus.no_show) else net
         if data.amount>maximum:raise HTTPException(400,'Số hoàn vượt tiền có thể hoàn sau phí đã giữ lại')
+        from .shifts_service import current_shift,totals
+        shift=current_shift(db,user.id,lock=True)
+        if data.method=='cash' and data.amount>totals(db,shift)['expected_cash']:raise HTTPException(409,'Két ca không đủ tiền mặt để hoàn; cần bổ sung tiền qua ca kế tiếp hoặc chọn phương thức thực tế')
         entry=MoneyEntry(booking_id=booking_id,kind='refund',amount=data.amount,method=data.method,reference=data.reference,reason=data.reason,request_key=data.request_key,actor_id=user.id)
+        entry.shift_id=shift.id
         db.add(entry)
         if inv:
             inv.paid_amount=net-data.amount

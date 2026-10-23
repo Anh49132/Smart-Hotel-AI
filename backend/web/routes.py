@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 templates = Jinja2Templates(directory=FRONTEND_DIR / "templates")
+templates.env.filters['money']=lambda value:f'{float(value):,.2f} ₫'
 STATUS_LABELS = {
     "available": "Trống", "occupied": "Đang ở", "cleaning": "Đang dọn", "maintenance": "Bảo trì",
     "confirmed": "Đã xác nhận", "checked_in": "Đang lưu trú", "checked_out": "Đã trả phòng", "cancelled": "Đã hủy", "no_show":"Khách không đến",
@@ -160,3 +161,12 @@ def ai_page(request: Request, user=Depends(get_current_user), db: Session = Depe
 @router.get("/reports", response_class=HTMLResponse)
 def reports_page(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     return templates.TemplateResponse('pages/reports.html', page_context(request, user, 'reports', **reports_page_context(db)))
+
+
+@router.get('/shifts',response_class=HTMLResponse)
+def shifts_page(request:Request,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
+    from backend.api.shifts import history
+    from backend.services.shifts_service import current_shift,shift_view
+    users=db.scalars(select(User)).all()
+    current=current_shift(db,user.id)
+    return templates.TemplateResponse('pages/shifts.html',page_context(request,user,'shifts',current=shift_view(db,current) if current else None,shifts=history(db,user),names={p.id:p.full_name for p in users},recipients=[p for p in users if p.is_active and p.id!=user.id and p.role in (Role.admin,Role.accountant,Role.receptionist)]))

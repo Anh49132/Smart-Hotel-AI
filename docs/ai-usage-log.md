@@ -125,3 +125,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Sổ tiền thêm refund với lý do, phương thức, tham chiếu và idempotency. Hoàn tối đa số đã nhận ròng; lịch hủy/no-show giữ lại phí đã chốt. Refund chủ động khi lịch còn hiệu lực làm tăng công nợ, không tự giảm phí lưu trú. Không chuyển tiền tự động.
 - Hủy/no-show sau thu cọc chỉ đi qua quyền admin/kế toán; trạng thái physical phòng không bị ghi đè. Bảng kê/danh sách hóa đơn hiển thị tổng hiệu lực, số dư âm là còn phải hoàn. Phiếu hoàn riêng.
 - Test hoàn một phần, retry, hoàn đồng thời, giữ phí, đồng hồ no-show và tổng dòng bảng kê; migration kiểm tra cả SQLite/PostgreSQL. Kết quả toàn bộ ghi cuối đợt.
+
+
+## C16 — Ca thu ngân và bàn giao
+- Prompt: “Gắn thu/hoàn vào ca đang mở, tính két tiền mặt và khóa ca khi chốt; kiểm tra cuộc đua thu tiền với chốt ca.”
+- Triển khai: chỉ một ca mở mỗi nhân viên (ràng buộc DB); khóa ca khi ghi tiền/chốt; chuyển khoản tách khỏi két, hoàn tiền mặt không vượt tồn két. Chốt lưu số kiểm đếm, chênh lệch, người nhận, ghi chú và ảnh chụp số liệu/công việc tồn.
+- Chỉnh sửa/kiểm chứng: replay giao dịch cũ sau đóng ca vẫn trả kết quả cũ; giao dịch mới bị chặn. Dữ liệu thu cũ để shift_id trống vì không có bằng chứng ca thực tế. Fixture kiểm thử mở ca rõ ràng; ứng dụng không tự mở ca.
+- Kiểm thử: PostgreSQL cho thu/hoàn/cọc, migration round-trip, chốt ca đồng thời và bảng kê.

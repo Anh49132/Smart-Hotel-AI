@@ -47,6 +47,8 @@ def db(monkeypatch):
             for table in ('room_types','rooms','customers','services'):
                 session.execute(text(f"SELECT setval(pg_get_serial_sequence('{table}','id'), COALESCE((SELECT MAX(id) FROM {table}),1), true)"))
             session.commit()
+        from backend.models import CashierShift
+        session.add(CashierShift(cashier_id=1,opening_cash=0));session.commit()
         yield session
 
 

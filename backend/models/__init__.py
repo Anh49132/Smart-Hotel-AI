@@ -24,6 +24,7 @@ from .entities import (
     BookingSurcharge,
     MoneyEntry,
     FinancialAdjustment,
+    CashierShift,
 )
 
 __all__ = ['Role', 'RoomStatus', 'BookingStatus', 'PaymentStatus', 'User', 'RoomType', 'Room', 'Customer', 'Booking', 'HotelService', 'ServiceUsage', 'Invoice', 'BookingStatusHistory', 'Payment', 'AIResult', 'RatePlan', 'BookingNight']
