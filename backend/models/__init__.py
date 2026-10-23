@@ -15,6 +15,7 @@ from .entities import (
     Payment,
     AIResult,
     AIReviewEvent,
+    DemoSeed,
     RatePlan,
     BookingNight,
     RoomStay,

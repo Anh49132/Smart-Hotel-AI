@@ -18,3 +18,8 @@ test_hotel.db
 .venv-local/
 data/*.db
 data/*.db-*
+
+data/*.local.json
+data/*.dump
+data/backups/
+.artifact-build/

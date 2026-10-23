@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="development-only-secret", repr=False)
     auto_create_schema: bool = True
     seed_demo_data: bool = True
+    demo_mode: bool = False
+    demo_seed_on_start: bool = False
+    demo_staff_password: SecretStr = SecretStr('')
     bootstrap_admin_password: SecretStr = SecretStr('')
     database_url: str = f"sqlite:///{(DATA_DIR / 'hotel.db').as_posix()}"
     gemini_api_key: SecretStr = Field(default=SecretStr(""), validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"))
@@ -26,6 +29,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode='after')
     def production_safety(self):
+        if self.demo_seed_on_start and (not self.demo_mode or len(self.demo_staff_password.get_secret_value())<12):
+            raise ValueError('Explicit DEMO_MODE and a private DEMO_STAFF_PASSWORD (12+ chars) are required to seed a demo')
         if self.app_env == 'production':
             if len(self.secret_key) < 32 or self.secret_key in ('change-this-secret-in-production', 'development-only-secret'):
                 raise ValueError('Production requires a random SECRET_KEY of at least 32 characters')
