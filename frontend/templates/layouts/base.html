@@ -13,6 +13,7 @@
   <aside class="sidebar" id="sidebar">
     <a class="brand" href="/"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></a>
     <nav>
+      {% if user.role.value!='housekeeping' %}
       <a class="{{'active' if active=='dashboard'}}" href="/"><i class="bi bi-grid"></i>Tổng quan</a>
       <p>VẬN HÀNH</p>
       <a class="{{'active' if active=='rooms'}}" href="/rooms"><i class="bi bi-door-open"></i>Phòng</a>
@@ -26,6 +27,8 @@
       <a class="{{'active' if active=='reports'}}" href="/reports"><i class="bi bi-bar-chart"></i>Báo cáo</a>
       <a class="{{'active' if active=='ai'}}" href="/ai"><i class="bi bi-stars"></i>Trợ lý AI <em>AI</em></a>
       {% if user.role.value=='admin' %}<p>HỆ THỐNG</p><a class="{{'active' if active=='users'}}" href="/users"><i class="bi bi-person-gear"></i>Nhân sự & quyền</a>{% endif %}
+      {% endif %}
+      {% if user.role.value in ['admin','receptionist','housekeeping'] %}<a class="{{'active' if active=='housekeeping'}}" href="/housekeeping"><i class="bi bi-stars"></i>Buồng phòng</a>{% endif %}
       <a class="{{'active' if active=='account'}}" href="/account"><i class="bi bi-person-lock"></i>Tài khoản</a>
     </nav>
     <div class="sidebar-user"><div class="avatar">{{user.full_name[0]}}</div><span><b>{{user.full_name}}</b><small>{{user.role.value}}</small></span><a href="/logout" title="Đăng xuất"><i class="bi bi-box-arrow-right"></i></a></div>
@@ -44,7 +47,7 @@
   </main>
 </div>
 <div class="toast-container position-fixed top-0 end-0 p-3"><div id="appToast" class="toast align-items-center border-0" role="alert"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
-{% include 'components/chat_widget.html' %}
+{% if user.role.value!='housekeeping' %}{% include 'components/chat_widget.html' %}{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const appToast = new bootstrap.Toast(document.getElementById('appToast'));
@@ -56,5 +59,5 @@ document.getElementById('notificationBtn').onclick=()=>document.getElementById('
 document.getElementById('globalSearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase().trim();document.querySelectorAll('[data-searchable]').forEach(el=>el.classList.toggle('d-none',q&&!el.textContent.toLowerCase().includes(q)))})
 </script>
 {% block scripts %}{% endblock %}
-<script src="/static/js/chat-widget.js"></script>
+{% if user.role.value!='housekeeping' %}<script src="/static/js/chat-widget.js"></script>{% endif %}
 </body></html>

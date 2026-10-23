@@ -9,6 +9,7 @@ class Role(str, Enum):
     admin = "admin"
     receptionist = "receptionist"
     accountant = "accountant"
+    housekeeping = "housekeeping"
 
 
 class RoomStatus(str, Enum):
@@ -141,6 +142,20 @@ class BookingChange(Base):
     before_data: Mapped[str] = mapped_column(Text)
     after_data: Mapped[str] = mapped_column(Text)
     changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class CleaningTask(Base):
+    __tablename__ = 'cleaning_tasks'
+    __table_args__ = (CheckConstraint("status IN ('pending','in_progress','inspection','ready')", name='ck_cleaning_status'),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey('rooms.id'), index=True)
+    assigned_to: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default='pending')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    inspected_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    inspected_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
 
 
 class HotelService(Base):

@@ -14,5 +14,5 @@
 </form></div>
 {% endblock %}
 {% block scripts %}<script>
-document.getElementById('passwordForm').onsubmit=async e=>{e.preventDefault();const form=e.target,button=form.querySelector('button');if(form.password.value!==document.getElementById('confirmPassword').value){showToast('Hai mật khẩu mới không trùng nhau',false);return}button.disabled=true;try{await apiRequest('/api/account/password',{method:'POST',body:JSON.stringify(formJSON(form))});showToast('Đã đổi mật khẩu và thu hồi các phiên cũ');setTimeout(()=>location.href='/',700)}catch(err){showToast(err.message,false)}finally{button.disabled=false}};
+document.getElementById('passwordForm').onsubmit=async e=>{e.preventDefault();const form=e.target,button=form.querySelector('button');if(form.password.value!==document.getElementById('confirmPassword').value){showToast('Hai mật khẩu mới không trùng nhau',false);return}button.disabled=true;try{await apiRequest('/api/account/password',{method:'POST',body:JSON.stringify(formJSON(form))});showToast('Đã đổi mật khẩu và thu hồi các phiên cũ');setTimeout(()=>location.href={{('/housekeeping' if user.role.value=='housekeeping' else '/')|tojson}},700)}catch(err){showToast(err.message,false)}finally{button.disabled=false}};
 </script>{% endblock %}

@@ -1,3 +1,4 @@
+from .housekeeping_service import open_task, create_cleaning_task
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from fastapi import HTTPException
@@ -23,7 +24,7 @@ def proposed_change(db, booking, target, data):
     moving = target.id != booking.room_id
     if in_house and (data.check_in != booking.check_in or not booking.check_in <= today < data.check_out):
         raise HTTPException(409, 'Khách đang ở: giữ ngày nhận ban đầu, ngày trả phải sau hôm nay')
-    if in_house and moving and target.status != RoomStatus.available:
+    if in_house and moving and (target.status != RoomStatus.available or open_task(db,target.id)):
         raise HTTPException(409, 'Phòng đích cần sẵn sàng để chuyển khách đang ở')
     cutoff = today if in_house and moving else min(booking.check_out, data.check_out) if in_house else data.check_in
     start = today if in_house else data.check_in
@@ -71,6 +72,7 @@ def change_booking(db, booking_id, data, actor_id, preview=False):
                 elif stay.check_out > today: stay.check_out=today
             db.add(RoomStay(booking_id=booking.id,room_id=data.room_id,check_in=today,check_out=data.check_out))
             rooms[current_room].status=RoomStatus.cleaning
+            create_cleaning_task(db,current_room)
             rooms[data.room_id].status=RoomStatus.occupied
         else:
             current = next((s for s in reversed(stays) if s.room_id == current_room),None)

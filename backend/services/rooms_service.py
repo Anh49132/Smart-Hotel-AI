@@ -1,3 +1,4 @@
+from .housekeeping_service import open_task, create_cleaning_task
 from .inventory_service import blocked_rooms
 from backend.models import Booking, BookingStatus, Room, RoomStatus, RoomType
 from backend.schemas import RoomIn, RoomTypeIn
@@ -12,6 +13,8 @@ from .rates_service import lock_room_type, quote
 
 
 def validate_physical_status(db, room_id, status):
+    if status == RoomStatus.available and open_task(db,room_id):
+        raise HTTPException(409,'Cần hoàn tất dọn và kiểm tra phòng trước khi sẵn sàng')
     checked_in = db.scalar(select(Booking.id).where(Booking.room_id == room_id, Booking.status == BookingStatus.checked_in).limit(1))
     if checked_in and status != RoomStatus.occupied:
         raise HTTPException(409, 'Phòng vẫn có khách, hãy thực hiện trả phòng trước')
@@ -79,6 +82,7 @@ def update_room(room_id: int, data: RoomIn, db: Session):
             raise HTTPException(409, 'Loại phòng mới không đủ sức chứa cho đặt phòng hiện có')
         for key, value in data.model_dump().items():
             setattr(room, key, value)
+        if data.status == RoomStatus.cleaning: create_cleaning_task(db,room_id)
         db.commit()
     return {'ok': True}
 
@@ -103,5 +107,6 @@ def room_status(room_id: int, status: RoomStatus, db: Session):
             raise HTTPException(404, 'Không tìm thấy phòng')
         validate_physical_status(db, room_id, status)
         room.status = status
+        if status == RoomStatus.cleaning: create_cleaning_task(db,room_id)
         db.commit()
     return {'ok': True}
