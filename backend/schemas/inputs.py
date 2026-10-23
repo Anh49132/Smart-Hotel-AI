@@ -149,7 +149,7 @@ class RoomAdviceIn(BaseModel):
 
 class EmailRequest(BaseModel):
     booking_id: int
-    kind: str = Field(pattern="^(confirmation|cancellation|payment_reminder)$")
+    kind: str = Field(pattern="^(confirmation|cancellation|change|payment_reminder)$")
 
 
 class ChatMessage(BaseModel):

@@ -148,3 +148,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Kiểm chứng: mock transport/schema, bịa phòng/giá, phòng trùng, sai JSON, ngân sách thấp, ngày sai, chèn lệnh/tiện ích không có, bảo trì và booking phát sinh khi model xử lý. Không gọi model thật.
 - Review tích hợp: chặn hủy/no-show nhanh bỏ qua phí; kiểm tra quyền hoàn/chốt ca khác người; chuyển khoản không thành tồn két. Fixture tái tạo schema PostgreSQL hủy pool để bỏ prepared plan cũ sau khi enum OID đổi; không sửa cấu hình production để che lỗi test.
 - Browser QA DB giả: bảng kê khớp tổng/cọc, preview hủy, chốt ca 600.000 tiền mặt lệch 0, báo cáo phân biệt 1.800.000 hóa đơn và 500.000 thu. IAB chưa xác minh được preview in; không coi là test máy in/PDF xuất thực tế.
+
+
+## C19 — Email nghiệp vụ và lịch sử duyệt
+- Prompt: “Soạn email theo trạng thái xác nhận/hủy/thay đổi/nhắc tiền, lấy dữ liệu tối thiểu; lưu model/prompt và giữ lịch sử duyệt.”
+- Triển khai: từ chối loại email trái trạng thái, nhắc tiền khi hết nợ, thông báo đổi khi chưa có thay đổi; kiểm tra snapshot lại sau model. Không gửi giấy tờ, liên hệ, sở thích, ghi chú hoặc tài khoản thanh toán.
+- Migration 0019 ghi model/prompt/source có chọn lọc; dữ liệu cũ mang legacy/unknown. Duyệt có khóa và event append-only; lễ tân chỉ xem/in bản nháp của mình, admin/kế toán duyệt. Bản nháp có sao chép/in, không tự gửi email.
+- Kiểm chứng: các loại email, dữ liệu riêng tư, race đổi trạng thái, hai người duyệt đồng thời, quyền xem và bản in; regression Gemini/business/migration SQLite đạt (PostgreSQL nghiệm thu tổng ở C21).

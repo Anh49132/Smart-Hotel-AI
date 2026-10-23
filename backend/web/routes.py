@@ -158,6 +158,12 @@ def ai_page(request: Request, user=Depends(get_current_user), db: Session = Depe
     return templates.TemplateResponse('pages/ai.html', page_context(request, user, 'ai', **ai_page_context(db)))
 
 
+@router.get('/ai/results/{result_id}/print',response_class=HTMLResponse)
+def ai_draft_print(result_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
+    from backend.api.ai import result_detail
+    return templates.TemplateResponse('pages/ai_draft_print.html',{'request':request,'draft':result_detail(result_id,db,user)})
+
+
 @router.get("/reports", response_class=HTMLResponse)
 def reports_page(request:Request,start:date|None=None,end:date|None=None,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
     from backend.services.reports_service import operating_report
