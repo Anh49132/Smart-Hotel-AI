@@ -1,4 +1,4 @@
-from backend.models import Booking, BookingStatus, BookingStatusHistory, Room, RoomStatus
+from backend.models import Booking, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus
 from backend.schemas import BookingIn
 from backend.services.invoice_service import calculate_invoice
 from datetime import date
@@ -22,6 +22,8 @@ def room_is_available(db: Session, room_id: int, check_in: date, check_out: date
     return db.scalar(query.limit(1)) is None
 
 def create_booking(db: Session, data: BookingIn, actor_id: int | None = None) -> Booking:
+    if not db.get(Customer, data.customer_id):
+        raise HTTPException(404, "Không tìm thấy khách hàng")
     room = db.execute(select(Room).where(Room.id == data.room_id).with_for_update()).scalar_one_or_none()
     if not room or room.status == RoomStatus.maintenance:
         raise HTTPException(400, "Phòng không tồn tại hoặc đang bảo trì")

@@ -33,3 +33,29 @@ def test_upgrade_check_downgrade_upgrade(tmp_path, backend):
             with admin.begin() as db:
                 db.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
             admin.dispose()
+
+
+def test_sqlite_batch_upgrade_preserves_referenced_history(tmp_path):
+    from datetime import date
+    from backend.models import Booking, BookingStatusHistory, Customer, Invoice, Room, RoomType
+    url = 'sqlite:///' + (tmp_path / 'existing.db').as_posix()
+    env = dict(os.environ, DATABASE_URL=url)
+    result = subprocess.run([sys.executable, '-m', 'alembic', 'upgrade', '0002'], env=env, capture_output=True)
+    assert result.returncode == 0
+    engine = build_engine(url)
+    try:
+        with engine.begin() as db:
+            db.execute(RoomType.__table__.insert(), {'id':1,'name':'Deluxe','capacity':2,'nightly_rate':900000,'amenities':''})
+            db.execute(Room.__table__.insert(), {'id':1,'number':'302','floor':3,'room_type_id':1})
+            db.execute(Customer.__table__.insert(), {'id':1,'full_name':'Demo','phone':'0000000000'})
+            db.execute(Booking.__table__.insert(), {'id':1,'code':'BK-LEGACY','customer_id':1,'room_id':1,'check_in':date(2030,1,1),'check_out':date(2030,1,3),'guests':2})
+            db.execute(Invoice.__table__.insert(), {'id':1,'booking_id':1,'room_amount':1800000,'total':1800000})
+            db.execute(BookingStatusHistory.__table__.insert(), {'booking_id':1,'to_status':'confirmed'})
+        result = subprocess.run([sys.executable, '-m', 'alembic', 'upgrade', 'head'], env=env, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        with engine.connect() as db:
+            assert db.scalar(text('SELECT total FROM invoices WHERE id=1')) == 1800000
+            assert db.scalar(text('SELECT COUNT(*) FROM booking_status_history')) == 1
+            assert db.exec_driver_sql('PRAGMA foreign_key_check').fetchall() == []
+    finally:
+        engine.dispose()
