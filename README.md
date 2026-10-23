@@ -1,6 +1,6 @@
 # Lotus Hotel AI.
 
-Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dựng bằng FastAPI, Jinja2, Bootstrap 5, SQLAlchemy, SQLite/PostgreSQL/MySQL và Google Gemini. Hệ thống hỗ trợ 3 vai trò (`admin`, `receptionist`, `accountant`), quản lý phòng, khách hàng, đặt/nhận/trả/hủy phòng, dịch vụ, hóa đơn, thanh toán, báo cáo, trợ lý AI và chatbot nghiệp vụ nhiều lượt.
+Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dựng bằng FastAPI, Jinja2, Bootstrap 5, SQLAlchemy, SQLite/PostgreSQL/MySQL và Google Gemini. Hệ thống hỗ trợ 4 vai trò (`admin`, `receptionist`, `accountant`, `housekeeping`), quản lý phòng, khách hàng, đặt/nhận/trả/hủy phòng, dịch vụ, hóa đơn, thanh toán, báo cáo, trợ lý AI và chatbot nghiệp vụ nhiều lượt.
 
 ## Cài đặt.
 
@@ -119,3 +119,18 @@ Chạy `python -m alembic upgrade head` để lên revision 0007 sau khi sao lư
 Nhấn mã đặt phòng từ Danh sách, Tổng quan hoặc Hóa đơn để mở `/bookings/{id}`. Trang hiển thị khách/liên hệ, ngày ở, giá đã chốt từng đêm, dịch vụ, dự tính hiện tại, hóa đơn và lịch sử trạng thái/người thao tác. Thời gian lịch sử hiển thị UTC. Mở trang không tự lập hoặc tính lại hóa đơn.
 
 Các nút nhận/trả/hủy/ghi dịch vụ dành cho admin/lễ tân theo trạng thái; kế toán/admin có thể lập/cập nhật hóa đơn tạm và ghi nhận tiền đã thu. Lịch sử từng khoản thu chỉ hiện cho kế toán/admin, lễ tân xem tổng đã thu/còn thiếu. Backend vẫn kiểm tra quyền và trạng thái cho mọi thao tác. Hóa đơn tạm được phân biệt với dự tính đã có dịch vụ mới. Dữ liệu legacy thiếu giá đêm/lịch sử hoặc chênh số thu so với ledger có thông báo đối chiếu, không tự tạo lịch sử giả.
+
+
+## Vận hành lưu trú (C07–C12)
+
+- **Đổi lịch/gia hạn/đổi phòng:** tại chi tiết booking, nhập lý do, xem giá mới rồi xác nhận. Khách đang ở đổi phòng từ hôm nay Asia/Bangkok; các đêm đã ở giữ giá cũ, chặng phòng cũ được giữ và tạo việc dọn. Giá mới không được thấp hơn số đã thu trên hóa đơn. Dữ liệu legacy thiếu giá đêm phải đối chiếu trước khi đổi khi đang ở.
+- **Lịch phòng `/calendar`:** 20 phòng/trang, tối đa 31 ngày; lọc ngày/loại/tầng/số khách. Nhấn mã để xem lịch sử, dấu + điền sẵn phòng/ngày. Khoảng lưu trú và bảo trì không gồm ngày kết thúc.
+- **Buồng phòng `/housekeeping`:** pending → in_progress → inspection → ready. Admin/lễ tân phân công tài khoản housekeeping và kiểm tra cuối; nhân viên chỉ xem/thao tác việc của mình, không truy cập khách, tiền hoặc AI. Không thể dùng cập nhật trạng thái phòng để bỏ qua việc dọn chưa xong.
+- **Bảo trì `/maintenance`:** tạo phiếu có người phụ trách và khoảng khóa bán; xung đột với booking/block hiện có bị từ chối. Đặt/sửa lịch, calendar và AI cùng dùng inventory theo chặng + block. Bảo trì theo ngày hết khoảng thì không chặn ngày sau; trạng thái physical maintenance thủ công vẫn cần xử lý riêng.
+- **Bàn lễ tân `/frontdesk`:** khách đến/đi/đang ở, quá giờ trả, tiền còn phải thu; walk-in dùng tạo booking rồi nhận. Chỉ nhận phòng trong khoảng ngày đã đặt. No-show là trạng thái riêng, sau giờ cấu hình ngày đến; có hóa đơn phải xử lý tài chính trước. Nhận/trả thực tế được ghi thời gian UTC, ngưỡng nghiệp vụ theo Asia/Bangkok. Bảng hiển thị tối đa 200 booking hiệu lực cho dữ liệu demo.
+- **Phụ thu:** admin cấu hình giờ và mức phí nhận sớm/trả muộn; mặc định phí 0. Mỗi loại là phí cố định một lần/lưu trú, không tính theo số giờ. Chỉ cộng sau xác nhận rõ của nhân viên, lưu người/thời điểm/mức đã chốt. Hóa đơn có cột phụ thu riêng.
+- **Khách hàng:** tìm trên toàn CSDL/phân trang 20 khách; chi tiết tách đã ở/đang ở/chưa đến/hủy/no-show. Chỉ checked_out tính lượt đã lưu trú, đổi phòng không tăng lượt. Ngày hoàn tất dùng timestamp trả thực tế khi có, fallback ngày trả lịch cho legacy. Ghi chú sở thích chỉ cho admin/lễ tân, không gửi AI. Giấy tờ che mặc định, thao tác xem đầy đủ chỉ cho admin/lễ tân với response no-store. Khi sửa, để trống giữ giấy tờ cũ; chọn Xóa giấy tờ để gỡ rõ ràng.
+
+API `/api/customers` trả `{items,total,page,pages,q}`; booking/invoice dùng schema đầu ra whitelist để tránh serialize quan hệ ORM có dữ liệu nhạy cảm. Migration mới nhất `0012`, chạy Alembic trước khi mở ứng dụng; sao lưu DB trước khi nâng. Migration backfill chặng phòng từ dữ liệu cũ biết được, không tự dựng các lần đổi phòng chưa từng được lưu. Các bước thu cọc/điều chỉnh/hoàn tiền và bàn giao ca vẫn nằm trong C13–C16, chưa coi đợt này là hoàn thiện toàn bộ hệ thống.
+
+Nghiệm thu đợt C07–C12: PostgreSQL 117 test đạt; SQLite 115 đạt, 2 test riêng PostgreSQL bỏ qua. Test không gọi Gemini thật. Đã thử trình duyệt với database QA riêng: chọn ô lịch điền sẵn, preview/xác nhận đổi phòng, dọn/kiểm tra, lọc bàn lễ tân và vai trò buồng phòng. Kiểm tra responsive nhiều kích thước/thiết bị thực vẫn cần ở đợt UX cuối.

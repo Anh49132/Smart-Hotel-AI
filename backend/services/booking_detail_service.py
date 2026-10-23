@@ -1,5 +1,9 @@
 """Read-only reservation detail; opening a page never creates an invoice."""
 from decimal import Decimal
+from datetime import timedelta
+from core.hotel_time import hotel_today
+from .housekeeping_service import open_task
+from .inventory_service import maintenance_blocks
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -42,7 +46,7 @@ def booking_detail(db, booking_id, role):
     finance = role in ('admin', 'accountant')
     if not finance:
         payments = []
-    can_check_in = frontdesk and booking.status.value == 'confirmed' and booking.room.status.value == 'available'
+    can_check_in = frontdesk and booking.status.value == 'confirmed' and booking.room.status.value == 'available' and booking.check_in<=hotel_today()<booking.check_out and not open_task(db,booking.room_id) and not maintenance_blocks(db,booking.room_id,hotel_today(),hotel_today()+timedelta(days=1))
     return {
         'id':booking.id, 'code':booking.code, 'status':booking.status.value, 'created_at':booking.created_at.isoformat(),
         'check_in':booking.check_in.isoformat(), 'check_out':booking.check_out.isoformat(), 'guests':booking.guests,

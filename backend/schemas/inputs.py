@@ -69,10 +69,12 @@ class RoomIn(BaseModel):
 
 
 class CustomerIn(BaseModel):
-    full_name: str
-    phone: str
+    full_name: str = Field(min_length=1,max_length=120)
+    phone: str = Field(min_length=3,max_length=30)
     email: Optional[EmailStr] = None
-    identity_number: Optional[str] = None
+    identity_number: Optional[str] = Field(default=None,max_length=80)
+    preference_notes: str = Field(default='',max_length=2000)
+    clear_identity: bool = False
 
 
 class BookingIn(BaseModel):
