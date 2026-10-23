@@ -164,3 +164,9 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Phát hiện từ thử thật: bộ lọc giấy tờ có thể che nhầm booking code dạng BK-A1234567. Đã bảo vệ riêng mã booking lấy từ DB trước lọc, không nới bộ lọc giấy tờ; bổ sung test hồi quy.
 
 Đã gọi thêm đúng một lượt email sau sửa bộ lọc: mã BK-A1234567 được giữ và ngày/loại phòng khớp dữ liệu giả. Tổng đợt đánh giá bốn request; kết quả lần đầu và lỗi đã sửa đều được giữ, không xóa minh chứng.
+
+
+## C21 — Nghiệm thu tích hợp, quyền và hiệu năng demo
+- Prompt: “Kiểm thử cả quy trình nhiều vai trò; đối chiếu ca/folio/báo cáo sau đổi phòng, cọc và thu cuối; đo dữ liệu demo bằng schema riêng.”
+- Bổ sung luồng acceptance nhiều vai trò và ma trận quyền. Giữ các test đồng thời/migration đã có, không thay bằng smoke test. Sửa danh sách phòng từ chuỗi HTML sang Option.text an toàn.
+- Kết quả: PostgreSQL 157 đạt; SQLite 155 đạt/2 bỏ qua. Benchmark PostgreSQL riêng 30 phòng/120 booking, 72 GET đều 200, tối đa 68,21 ms trong mẫu tuần tự local; không suy diễn tải production. Chi tiết tại acceptance-c21.md và benchmark JSON.
