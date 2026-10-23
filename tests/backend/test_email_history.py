@@ -43,3 +43,11 @@ def test_email_race_does_not_save_stale_draft(client,db,monkeypatch):
     monkeypatch.setattr('backend.services.ai_service.generate_text',generate)
     assert client.post('/api/ai/email',json={'booking_id':bid,'kind':'confirmation'}).status_code==409
     assert db.scalar(select(func.count()).select_from(AIResult))==0
+
+
+def test_known_booking_code_is_preserved_but_identity_is_redacted(client,db,monkeypatch):
+    b=create_booking(db,data());b.code='BK-A1234567';db.commit()
+    monkeypatch.setattr('backend.services.ai_service.generate_text',AsyncMock(return_value='Mã BK-A1234567; CCCD: 012345678901'))
+    result=client.post('/api/ai/email',json={'booking_id':b.id,'kind':'confirmation'})
+    assert result.status_code==200
+    assert 'BK-A1234567' in result.json()['content'] and '012345678901' not in result.json()['content']

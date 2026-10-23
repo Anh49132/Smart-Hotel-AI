@@ -1,10 +1,14 @@
 from backend.schemas import ChatRequest, EmailRequest, RoomAdviceIn
 from backend.services.ai_service import advise_rooms, ai_report, booking_email, hotel_chat
-from backend.dependencies import require_roles
+from backend.dependencies import require_roles,get_current_user
 from backend.models import AIResult, AIReviewEvent, Role
 from backend.services.email_service import draft_email,EMAIL_VERSION
 from backend.services.transactions import write_transaction
 from core.config import settings
+from core.ai_limiter import ai_budget
+from core.hotel_time import hotel_today
+from datetime import date,timedelta
+from backend.services.ai_reports import draft_report,draft_handover,REPORT_VERSION
 import json
 from core.database import get_db
 from datetime import datetime
@@ -14,17 +18,20 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-@router.post("/ai/room-advice")
+def ai_guard(user=Depends(get_current_user)):
+    with ai_budget.reserve(user.id):yield
+
+@router.post("/ai/room-advice",dependencies=[Depends(ai_guard)])
 async def room_advice(data: RoomAdviceIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
     result = await advise_rooms(db, data)
     if result["rooms"]:
-        record = AIResult(kind="room_advice", content=result["message"], generated_by=user.id)
+        record = AIResult(kind="room_advice",content=result['message'],generated_by=user.id,model_name=settings.gemini_model,prompt_version='room-advice-v2')
         db.add(record); db.commit(); db.refresh(record)
         result["ai_result_id"] = record.id
     return result
 
 
-@router.post("/ai/email")
+@router.post("/ai/email",dependencies=[Depends(ai_guard)])
 async def email(data: EmailRequest, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
     content,facts = await draft_email(db,data.booking_id,data.kind)
     record = AIResult(kind="email",content=content,booking_id=data.booking_id,generated_by=user.id,email_kind=data.kind,model_name=settings.gemini_model,prompt_version=EMAIL_VERSION,source_json=json.dumps(facts,ensure_ascii=False))
@@ -32,23 +39,33 @@ async def email(data: EmailRequest, db: Session = Depends(get_db), user=Depends(
     return {"content": content, "ai_result_id": record.id, "review_status": record.review_status}
 
 
-@router.get("/ai/report")
-async def report(db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.accountant))):
-    content = await ai_report(db)
-    record = AIResult(kind="report", content=content, generated_by=user.id)
+@router.get('/ai/report',dependencies=[Depends(ai_guard)])
+@router.post('/ai/report',dependencies=[Depends(ai_guard)])
+async def report(start:date|None=None,end:date|None=None,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.accountant))):
+    start=start or hotel_today().replace(day=1);end=end or hotel_today()+timedelta(days=1)
+    content,source=await draft_report(db,start,end)
+    record = AIResult(kind='report',content=content,generated_by=user.id,model_name=settings.gemini_model,prompt_version=REPORT_VERSION,source_json=json.dumps(source,ensure_ascii=False))
     db.add(record); db.commit(); db.refresh(record)
     return {"content": content, "ai_result_id": record.id, "review_status": record.review_status}
 
 
-@router.post("/ai/chat")
-async def chat(data: ChatRequest, db: Session = Depends(get_db)):
-    return {"content": await hotel_chat(db, data.messages)}
+@router.post('/ai/handover/{shift_id}',dependencies=[Depends(ai_guard)])
+async def handover(shift_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist))):
+    content,source=await draft_handover(db,shift_id,user)
+    record=AIResult(kind='handover',content=content,generated_by=user.id,model_name=settings.gemini_model,prompt_version='handover-v1',source_json=json.dumps(source,ensure_ascii=False))
+    db.add(record);db.commit();db.refresh(record)
+    return {'content':content,'ai_result_id':record.id,'review_status':record.review_status}
+
+
+@router.post('/ai/chat',dependencies=[Depends(ai_guard)])
+async def chat(data:ChatRequest,db:Session=Depends(get_db),user=Depends(get_current_user)):
+    return {'content':await hotel_chat(db,data.messages,user)}
 
 
 @router.get("/ai/results")
 def ai_results(db: Session = Depends(get_db), user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist))):
     query=select(AIResult).order_by(AIResult.id.desc()).limit(100)
-    if user.role==Role.receptionist:query=query.where(AIResult.generated_by==user.id,AIResult.kind.in_(('email','room_advice')))
+    if user.role==Role.receptionist:query=query.where(AIResult.generated_by==user.id,AIResult.kind.in_(('email','room_advice','handover')))
     return db.scalars(query).all()
 
 
@@ -69,5 +86,5 @@ def review_ai_result(result_id: int, approved: bool, db: Session = Depends(get_d
 def result_detail(result_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist))):
     record=db.get(AIResult,result_id)
     if not record:raise HTTPException(404,'Không tìm thấy bản nháp')
-    if user.role==Role.receptionist and (record.generated_by!=user.id or record.kind not in ('email','room_advice')):raise HTTPException(403,'Chỉ xem bản nháp của chính mình')
+    if user.role==Role.receptionist and (record.generated_by!=user.id or record.kind not in ('email','room_advice','handover')):raise HTTPException(403,'Chỉ xem bản nháp của chính mình')
     return {'id':record.id,'kind':record.kind,'email_kind':record.email_kind,'content':record.content,'review_status':record.review_status,'model':record.model_name,'prompt_version':record.prompt_version,'source':json.loads(record.source_json),'reviews':[{'actor_id':e.actor_id,'approved':e.approved,'at':e.created_at.isoformat()} for e in db.scalars(select(AIReviewEvent).where(AIReviewEvent.result_id==result_id))]}

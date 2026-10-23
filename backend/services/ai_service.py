@@ -1,12 +1,12 @@
 from .inventory_service import blocked_rooms
 from .booking_service import ACTIVE_BOOKING_STATUSES
 from .rates_service import quote
-from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType
+from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType,Role,FinancialAdjustment
 from .gemini_client import generate_content, generate_text, sanitize_free_text
 from datetime import date
 from decimal import Decimal
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, case
 from sqlalchemy.orm import Session, selectinload
 
 import json
@@ -40,7 +40,7 @@ async def generate_chat(messages: list[dict], context: dict) -> str:
     return await generate_content(contents, system)
 
 
-def chatbot_context(db: Session) -> dict:
+def chatbot_context(db:Session,user=None)->dict:
     rooms = db.scalars(
         select(Room).join(RoomType).where(RoomType.is_active.is_(True)).options(selectinload(Room.room_type)).order_by(Room.number)
     ).all()
@@ -66,11 +66,9 @@ def chatbot_context(db: Session) -> dict:
         )
     ) or 0
     outstanding = db.scalar(
-        select(func.coalesce(func.sum(Invoice.total - Invoice.paid_amount), 0)).where(
-            Invoice.paid_amount < Invoice.total
-        )
+        select(func.coalesce(func.sum(case((Invoice.total+func.coalesce(FinancialAdjustment.amount,0)>Invoice.paid_amount,Invoice.total+func.coalesce(FinancialAdjustment.amount,0)-Invoice.paid_amount),else_=0)),0)).outerjoin(FinancialAdjustment,FinancialAdjustment.booking_id==Invoice.booking_id)
     ) or 0
-    return {
+    result = {
         "ngay_hien_tai": str(date.today()),
         "tong_so_phong": len(rooms),
         "so_luong_theo_trang_thai": room_counts,
@@ -93,14 +91,16 @@ def chatbot_context(db: Session) -> dict:
         "so_khach_du_kien_den_hom_nay": arrivals_today,
         "tong_tien_con_phai_thu": float(outstanding),
     }
+    if user is not None and user.role==Role.receptionist:result.pop('tong_tien_con_phai_thu',None)
+    return result
 
 
-async def hotel_chat(db: Session, messages) -> str:
+async def hotel_chat(db:Session,messages,user=None)->str:
     safe_messages = [
         {"role": message.role, "content": message.content}
         for message in messages[-12:]
     ]
-    return await generate_chat(safe_messages, chatbot_context(db))
+    return await generate_chat(safe_messages,chatbot_context(db,user))
 
 
 def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decimal):
@@ -129,9 +129,9 @@ async def booking_email(db: Session, booking_id: int, kind: str) -> str:
 
 
 async def ai_report(db: Session) -> str:
-    total_rooms = db.scalar(select(func.count(Room.id))) or 0
-    occupied = db.scalar(select(func.count(Room.id)).where(Room.status == RoomStatus.occupied)) or 0
-    revenue = db.scalar(select(func.coalesce(func.sum(Invoice.paid_amount), 0))) or 0
-    bookings = db.scalar(select(func.count(Booking.id)).where(Booking.status.not_in((BookingStatus.cancelled,BookingStatus.no_show)))) or 0
-    data = {"total_rooms": total_rooms, "occupied_rooms": occupied, "occupancy_percent": round(occupied / total_rooms * 100, 1) if total_rooms else 0, "paid_revenue": float(revenue), "active_bookings": bookings}
-    return await generate_text(f"Số liệu hiện tại: {json.dumps(data, ensure_ascii=False)}", REPORT_SYSTEM)
+    from .ai_reports import draft_report
+    from core.hotel_time import hotel_today
+    from datetime import timedelta
+    today=hotel_today()
+    content,_=await draft_report(db,today.replace(day=1),today+timedelta(days=1))
+    return content

@@ -155,3 +155,12 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Triển khai: từ chối loại email trái trạng thái, nhắc tiền khi hết nợ, thông báo đổi khi chưa có thay đổi; kiểm tra snapshot lại sau model. Không gửi giấy tờ, liên hệ, sở thích, ghi chú hoặc tài khoản thanh toán.
 - Migration 0019 ghi model/prompt/source có chọn lọc; dữ liệu cũ mang legacy/unknown. Duyệt có khóa và event append-only; lễ tân chỉ xem/in bản nháp của mình, admin/kế toán duyệt. Bản nháp có sao chép/in, không tự gửi email.
 - Kiểm chứng: các loại email, dữ liệu riêng tư, race đổi trạng thái, hai người duyệt đồng thời, quyền xem và bản in; regression Gemini/business/migration SQLite đạt (PostgreSQL nghiệm thu tổng ở C21).
+
+
+## C20 — Báo cáo/ca có nguồn số liệu và giới hạn AI
+- Prompt: “Chọn key/value chỉ số và mã ý tưởng khuyến mại từ schema; backend từ chối số liệu khác snapshot. Tóm tắt ca chỉ trong phạm vi được xem.”
+- Triển khai: dùng C17, tách mốc thời gian/số dư hiện tại; model chỉ chọn trọng tâm, code dựng mọi con số và gợi ý cần quản lý duyệt. Ca không gửi ghi chú, tên nhân viên, mã tham chiếu hoặc dữ liệu khách. Lễ tân không nhận tổng công nợ khách sạn trong chat. Giới hạn một tiến trình: 10 yêu cầu AI/phút/người, tối đa hai đang xử lý; context chat giữ giới hạn 12 lượt và 1500 ký tự/lượt.
+- Mock: giá trị bịa bị từ chối, quyền ca/báo cáo, không truyền ghi chú và budget đồng thời. Ba lượt gọi Gemini thật bằng DB giả đã đạt: gợi ý phòng, báo cáo và email; bằng chứng trong ai-live-evaluation-2026-10-23.json. Email vẫn cần người duyệt.
+- Phát hiện từ thử thật: bộ lọc giấy tờ có thể che nhầm booking code dạng BK-A1234567. Đã bảo vệ riêng mã booking lấy từ DB trước lọc, không nới bộ lọc giấy tờ; bổ sung test hồi quy.
+
+Đã gọi thêm đúng một lượt email sau sửa bộ lọc: mã BK-A1234567 được giữ và ngày/loại phòng khớp dữ liệu giả. Tổng đợt đánh giá bốn request; kết quả lần đầu và lỗi đã sửa đều được giữ, không xóa minh chứng.
