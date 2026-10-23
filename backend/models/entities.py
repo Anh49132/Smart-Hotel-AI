@@ -2,7 +2,7 @@ from core.database import Base
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Enum as SQLEnum, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class Role(str, Enum):
@@ -76,7 +76,7 @@ class Customer(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
-    __table_args__ = (UniqueConstraint("room_id", "check_in", "check_out", name="uq_booking_exact_dates"), CheckConstraint("check_out > check_in", name="ck_booking_dates"), CheckConstraint("guests > 0", name="ck_booking_guests"))
+    __table_args__ = (CheckConstraint("check_out > check_in", name="ck_booking_dates"), CheckConstraint("guests > 0", name="ck_booking_guests"), Index('ix_booking_overlap', 'room_id', 'status', 'check_in', 'check_out'))
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(24), unique=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))

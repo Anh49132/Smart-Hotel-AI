@@ -14,3 +14,9 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - AI hỗ trợ bỏ ba bộ hàm bị định nghĩa trùng, kiểm tra tham chiếu ở service và ràng buộc miền dữ liệu ở DB.
 - Điều chỉnh sau kiểm tra: SQLite cần tắt FK ngoài transaction trong thao tác batch migration, rồi kiểm tra toàn bộ FK trước commit; không chỉ bật PRAGMA ở ứng dụng.
 - Kiểm chứng: PostgreSQL/SQLite, từ chối khách/loại phòng không tồn tại, chặn xóa lịch sử, ghi SQL trực tiếp sai ràng buộc và nâng DB SQLite có lịch sử/hóa đơn.
+
+## C02 — Đặt phòng và chuyển trạng thái
+
+- AI hỗ trợ thiết kế khóa trên phòng trước đọc phòng trống: PostgreSQL khóa hàng, SQLite lấy khóa ghi bằng UPDATE không thay dữ liệu. Cùng thứ tự khóa được dùng cho nhận/trả, trạng thái phòng và ghi dịch vụ.
+- Sửa unique ngày tuyệt đối bằng migration giữ lịch sử, hủy lịch tương lai không đổi tình trạng vật lý, check-in yêu cầu phòng sẵn sàng và không có khách khác.
+- Kiểm chứng hai session thật chạy đồng thời: đặt chồng lịch, nhận phòng lặp và checkout cùng ghi dịch vụ; sát biên/đặt lại sau hủy vẫn hợp lệ. Test chạy trên cả PostgreSQL và SQLite.
