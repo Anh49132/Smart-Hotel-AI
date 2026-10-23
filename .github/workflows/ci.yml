@@ -4,10 +4,10 @@ permissions:
   contents: read
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python: ['3.14']
+        python: ['3.14.7']
         database: [sqlite, postgres]
     services:
       postgres:
@@ -16,11 +16,11 @@ jobs:
           POSTGRES_PASSWORD: ci-only-password
         ports: ['5432:5432']
         options: >-
-          --health-cmd pg_isready --health-interval 10s
+          --health-cmd "pg_isready -U postgres" --health-interval 10s
           --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -30,14 +30,14 @@ jobs:
       - run: python -m compileall -q backend core scripts migrations
       - name: SQLite
         if: matrix.database == 'sqlite'
-        run: pytest -q --disable-warnings
+        run: python -m pytest -q --disable-warnings
       - name: PostgreSQL
         if: matrix.database == 'postgres'
         env:
           HOTEL_TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-only-password@127.0.0.1:5432/postgres
-        run: pytest -q --disable-warnings
+        run: python -m pytest -q --disable-warnings
   container:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker build -t lotus-hotel:check .
