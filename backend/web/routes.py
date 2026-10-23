@@ -3,6 +3,7 @@ from backend.models import Role, RoomType, RatePlan, User, Room
 from backend.services.maintenance_service import blocks
 from backend.services.frontdesk_service import desk_rows
 from backend.services.customers_service import customers as customer_search,customer_detail
+from backend.services.folio_service import folio,receipt_document
 from backend.services.housekeeping_service import list_tasks
 from sqlalchemy import select
 from datetime import date, timedelta
@@ -112,6 +113,16 @@ def customers_page(request: Request,q:str=Query('',max_length=100),page:int=Quer
 @router.get('/customers/{customer_id}',response_class=HTMLResponse)
 def customer_detail_page(customer_id:int,request:Request,page:int=Query(1,ge=1),user=Depends(get_current_user),db:Session=Depends(get_db)):
     return templates.TemplateResponse('pages/customer_detail.html',page_context(request,user,'customers',guest=customer_detail(db,customer_id,user.role in (Role.admin,Role.receptionist),page)))
+
+
+@router.get('/bookings/{booking_id}/folio',response_class=HTMLResponse)
+def folio_page(booking_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant)),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/folio_print.html',{'request':request,'folio':folio(db,booking_id)})
+
+
+@router.get('/receipts/{entry_id}/print',response_class=HTMLResponse)
+def receipt_print(entry_id:int,request:Request,user=Depends(require_roles(Role.admin,Role.accountant,Role.receptionist)),db:Session=Depends(get_db)):
+    return templates.TemplateResponse('pages/receipt_print.html',{'request':request,'receipt':receipt_document(db,entry_id,user)})
 
 
 @router.get('/bookings/{booking_id}', response_class=HTMLResponse)
