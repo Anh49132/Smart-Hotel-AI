@@ -59,6 +59,7 @@ def mark_no_show(db,booking_id,actor):
         if b.room_id!=room_id or b.status!=BookingStatus.confirmed or hotel_now()<threshold(b.check_in,policy(db)['no_show_hour']):
             raise HTTPException(409,'Chưa đến hạn no-show hoặc trạng thái đã thay đổi')
         if b.invoice is not None or net_received(db,b.id)>0:raise HTTPException(409,'Xử lý hóa đơn/tiền đã thu trước khi xác nhận no-show')
+        if (db.scalar(select(HotelPolicy.no_show_percent).where(HotelPolicy.id==1)) or 0)>0:raise HTTPException(409,'Có phí no-show; kế toán/admin cần quyết toán tại mục Hủy / Hoàn')
         db.add(BookingStatusHistory(booking_id=b.id,from_status=b.status,to_status=BookingStatus.no_show,changed_by=actor.id))
         b.status=BookingStatus.no_show
         db.commit()

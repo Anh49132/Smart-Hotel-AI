@@ -177,3 +177,14 @@ Nghiệm thu mã C05+C06: PostgreSQL 100 test đạt; SQLite 98 đạt/2 bỏ qu
 - Mỗi phần một nhánh feature từ dev, triển khai theo phụ thuộc rồi merge local có commit riêng. Hai tài khoản đã được lưu trong Git Credential Manager; chọn credential.username cho từng push và kiểm chứng tài khoản qua API /user, không đổi tác giả sau khi push hoặc giả lịch sử review.
 - PostgreSQL 117 test đạt; SQLite 115 đạt/2 bỏ qua PostgreSQL. Browser QA dùng dữ liệu giả riêng để thử lịch→đổi phòng→dọn/kiểm tra và quyền housekeeping, khách và bàn lễ tân; đây chưa là kiểm thử UX đa thiết bị đầy đủ.
 - Database local nâng 0007→0012 sau backup, số dòng bảng cũ/tổng tiền không đổi. main vẫn là mốc phát hành trước, chưa triển khai R02/Render. Báo cáo đánh giá cũ vẫn là tài liệu đầu vào theo ngày, không tự coi là chứng nhận đủ toàn bộ tiêu chí.
+
+
+## Đợt sáu commit C13–C18 — 23/10/2026
+
+- Anh49132: C13 deposits, C15 refunds, C17 operating-reports.
+- khanhhoang1012006-svg: C14 folio, C16 shift-handover, C18 room-advice.
+- Mỗi phần một feature từ dev, kiểm thử rồi merge local --no-ff; push riêng nhóm ba nhánh bằng credential của đúng tài khoản. Đây không thay thế review chéo. main chưa phát hành, R02/Render chưa triển khai.
+- Full suite PostgreSQL 142 đạt; SQLite 140 đạt/2 bỏ qua PostgreSQL. Sau review bổ sung ba ca về quyền/két tiền/chặn bỏ qua phí, chạy cùng 15 ca đặt phòng/frontdesk/ca (18 ca) trên cả hai CSDL đều đạt. AI chỉ mock.
+- Browser QA với DB riêng: xem bảng kê, preview hủy, chốt ca và báo cáo; kiểm tra bảng hẹp cho cuộn ngang, chưa hoàn tất UX đa thiết bị hoặc máy in/PDF thực tế.
+- Backup local `data/hotel.before-c13-c18.20261023-184250.db`; schema 0012→0016, Alembic check, integrity/FK đạt; số dòng bảng cũ/giá trị hóa đơn giữ nguyên, MoneyEntry đối chiếu khớp paid_amount. Không chuyển dữ liệu lên Render trong đợt này.
+- Số thu cũ không biết ngày để legacy_opening, không tính dòng tiền; không gán ca giả. Công suất C17 là theo lịch, số dư là hiện tại; email/báo cáo AI nâng cao và các hạng mục cuối vẫn theo C19 trở đi.

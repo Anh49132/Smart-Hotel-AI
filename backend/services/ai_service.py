@@ -118,17 +118,8 @@ def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decim
 
 
 async def advise_rooms(db: Session, data) -> dict:
-    rooms = available_rooms(db, data.check_in, data.check_out, data.guests, data.budget)
-    if not rooms:
-        return {"message": "Không có phòng phù hợp và còn trống trong khoảng ngày đã chọn.", "rooms": []}
-    safe = []
-    for r in rooms:
-        prices = quote(db, r.room_type, data.check_in, data.check_out)
-        safe.append({"number": sanitize_free_text(r.number), "type": sanitize_free_text(r.room_type.name), "capacity": r.room_type.capacity,
-                     "price": float(prices['average']), "stay_total": float(prices['total']), "price_basis": "Trung bình mỗi đêm; tổng theo ngày lưu trú",
-                     "amenities": sanitize_free_text(r.room_type.amenities)})
-    prompt = f"Nhu cầu: {data.guests} khách, ngân sách {data.budget}/đêm, từ {data.check_in} đến {data.check_out}, tiện ích: {sanitize_free_text(data.amenities) or 'không yêu cầu'}. Danh sách phòng trống: {json.dumps(safe, ensure_ascii=False)}"
-    return {"message": await generate_text(prompt, ROOM_SYSTEM), "rooms": safe[:3]}
+    from .room_advice import advise
+    return await advise(db,data)
 
 
 async def booking_email(db: Session, booking_id: int, kind: str) -> str:
