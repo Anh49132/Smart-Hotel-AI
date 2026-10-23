@@ -27,6 +27,7 @@
       <a class="{{'active' if active=='reports'}}" href="/reports"><i class="bi bi-bar-chart"></i>Báo cáo</a>
       <a class="{{'active' if active=='ai'}}" href="/ai"><i class="bi bi-stars"></i>Trợ lý AI <em>AI</em></a>
       {% if user.role.value=='admin' %}<p>HỆ THỐNG</p><a class="{{'active' if active=='users'}}" href="/users"><i class="bi bi-person-gear"></i>Nhân sự & quyền</a>{% endif %}
+      {% if user.role.value in ['admin','receptionist'] %}<a href="/maintenance"><i class="bi bi-tools"></i>Bảo trì</a>{% endif %}
       {% endif %}
       {% if user.role.value in ['admin','receptionist','housekeeping'] %}<a class="{{'active' if active=='housekeeping'}}" href="/housekeeping"><i class="bi bi-stars"></i>Buồng phòng</a>{% endif %}
       <a class="{{'active' if active=='account'}}" href="/account"><i class="bi bi-person-lock"></i>Tài khoản</a>
