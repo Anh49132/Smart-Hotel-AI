@@ -6,9 +6,20 @@ from backend.models import Role,Booking,MoneyEntry
 from backend.schemas.inputs import ReceiptIn
 from backend.services.money_service import receipt,serialized_balance
 from core.database import get_db
+from backend.services.folio_service import folio,receipt_document
 
 router=APIRouter()
 cashiers=require_roles(Role.admin,Role.receptionist,Role.accountant)
+
+
+@router.get('/bookings/{booking_id}/folio')
+def booking_folio(booking_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.accountant))):
+    return folio(db,booking_id)
+
+
+@router.get('/receipts/{entry_id}')
+def receipt_detail(entry_id:int,db:Session=Depends(get_db),user=Depends(cashiers)):
+    return receipt_document(db,entry_id,user)
 
 
 @router.post('/bookings/{booking_id}/receipts')

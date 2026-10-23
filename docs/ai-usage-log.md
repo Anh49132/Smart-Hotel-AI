@@ -110,3 +110,10 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Các API ghi tiền yêu cầu request_key, body cùng khóa trả cùng biên nhận; đổi nội dung với cùng khóa bị chặn. Khóa phòng→booking→invoice theo một thứ tự; quá số dư bị từ chối cả khi thu đồng thời.
 - Migration nhập Payment hiện có một lần, chênh paid_amount chưa có lịch sử thành legacy_opening có nhãn thời điểm thực không biết. Nếu Payment lớn hơn paid_amount thì dừng để đối chiếu, không tự bịa khoản hoàn. Downgrade từ chối bỏ dữ liệu giao dịch mới.
 - Phát hiện wildcard action route nuốt đường thu cọc; tách các route nhận/trả/hủy rõ ràng. UI giữ mã chống lặp của lần gửi và chặn bấm lặp. Test cọc một phần/đối trừ, retry, cùng khóa đồng thời, quá số dư và migration số dư cũ; toàn bộ hồi quy được ghi cuối đợt.
+
+
+## C14 — Bảng kê và chứng từ nội bộ
+
+- Tách dòng chi phí khỏi sổ tiền: từng đêm/chặng, dịch vụ snapshot, phụ thu, giảm giá; cọc/thu/hoàn ở bảng riêng để không trừ/cộng hai lần. Dữ liệu legacy/chênh hóa đơn có dòng đối chiếu rõ, không dựng chi tiết giả.
+- HTML in từng lưu trú/phiếu thu độc lập Bootstrap, A4/@media print, không giấy tờ/thông tin thẻ. Ghi rõ chứng từ nội bộ, không phải hóa đơn điện tử. Lễ tân chỉ in phiếu cọc do mình ghi; bảng kê/sổ giao dịch dành cho admin/kế toán.
+- Test tổng dòng bằng tổng hóa đơn, đối trừ cọc đúng, mở trang không tạo tiền và quyền in. Kiểm tra bản in trong trình duyệt và toàn bộ hồi quy ghi cuối đợt.

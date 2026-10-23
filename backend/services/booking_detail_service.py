@@ -8,7 +8,7 @@ from .inventory_service import maintenance_blocks
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from backend.models import Booking, BookingNight, HotelService, Invoice, ServiceUsage, User, RoomStay, Room, BookingChange, BookingSurcharge
+from backend.models import Booking, BookingNight, HotelService, Invoice, ServiceUsage, User, RoomStay, Room, BookingChange, BookingSurcharge, MoneyEntry
 from .rates_service import booked_room_amount
 
 
@@ -37,10 +37,13 @@ def booking_detail(db, booking_id, role):
     actors.update(h.changed_by for h in booking.status_history if h.changed_by)
     if invoice:
         actors.update(p.paid_by for p in invoice.payments if p.paid_by)
+    entries=db.scalars(select(MoneyEntry).where(MoneyEntry.booking_id==booking_id).order_by(MoneyEntry.id)).all()
+    actors.update(e.actor_id for e in entries if e.actor_id)
     names = dict(db.execute(select(User.id, User.full_name).where(User.id.in_(actors))).all()) if actors else {}
     history = [{'id':h.id, 'from_status':h.from_status.value if h.from_status else None, 'to_status':h.to_status.value,
                 'at':h.changed_at.isoformat(), 'actor':names.get(h.changed_by, 'Hệ thống / chưa ghi người thao tác')} for h in booking.status_history]
     payments = [{'id':p.id, 'amount':amount(p.amount), 'at':p.paid_at.isoformat(), 'actor':names.get(p.paid_by, 'Chưa ghi người thu')} for p in invoice.payments] if invoice else []
+    if entries: payments=[{'id':e.id,'amount':amount(e.amount),'kind':e.kind,'method':e.method,'at':e.occurred_at.isoformat(),'actor':names.get(e.actor_id,'Chưa ghi người thu')} for e in entries]
     # Show unmatched legacy paid amounts explicitly instead of inventing transactions.
     ledger_gap = invoice.paid_amount - net_received(db,booking_id) if invoice else Decimal(0)
     frontdesk = role in ('admin', 'receptionist')
