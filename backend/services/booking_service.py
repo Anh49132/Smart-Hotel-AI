@@ -1,6 +1,7 @@
 from .housekeeping_service import open_task, create_cleaning_task
 from backend.models import Booking, BookingNight, BookingStatus, BookingStatusHistory, Customer, Room, RoomStatus, RoomStay
 from .rates_service import lock_room_type, quote
+from .money_service import net_received
 from backend.schemas import BookingIn
 from backend.services.invoice_service import calculate_invoice
 from datetime import date
@@ -60,7 +61,7 @@ def booking_action(booking_id: int, action: str, db: Session, actor_id: int | No
         expected, target = transitions[action]
         if booking.status != expected:
             raise HTTPException(409, 'Trạng thái đặt phòng không phù hợp')
-        if action == 'cancel' and booking.invoice is not None:
+        if action == 'cancel' and (booking.invoice is not None or net_received(db,booking.id)>0):
             raise HTTPException(409, 'Đặt phòng đã có hóa đơn; cần xử lý điều chỉnh/hoàn tiền trước khi hủy')
         if action == 'check-in':
             from .inventory_service import maintenance_blocks

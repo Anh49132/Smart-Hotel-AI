@@ -1,3 +1,4 @@
+from .money_service import balance,net_received
 from datetime import datetime,time,timezone
 from decimal import Decimal
 from sqlalchemy import select,func,update
@@ -39,7 +40,7 @@ def desk_rows(db):
         inv=b.invoice
         service=db.scalar(select(func.coalesce(func.sum(ServiceUsage.unit_price*ServiceUsage.quantity),0)).where(ServiceUsage.booking_id==b.id))
         fees=db.scalar(select(func.coalesce(func.sum(BookingSurcharge.amount),0)).where(BookingSurcharge.booking_id==b.id))
-        due=inv.total-inv.paid_amount if inv else booked_room_amount(db,b)+service+fees
+        due=balance(db,b)['balance']
         charged=set(db.scalars(select(BookingSurcharge.kind).where(BookingSurcharge.booking_id==b.id)).all())
         result.append({'id':b.id,'code':b.code,'customer':b.customer.full_name,'room':b.room.number,'check_in':str(b.check_in),'check_out':str(b.check_out),'status':b.status.value,
             'due':str(due),'overdue':b.status==BookingStatus.checked_in and now>threshold(b.check_out,p['check_out_hour']),
@@ -57,7 +58,7 @@ def mark_no_show(db,booking_id,actor):
         b=db.scalar(select(Booking).where(Booking.id==booking_id).with_for_update().execution_options(populate_existing=True))
         if b.room_id!=room_id or b.status!=BookingStatus.confirmed or hotel_now()<threshold(b.check_in,policy(db)['no_show_hour']):
             raise HTTPException(409,'Chưa đến hạn no-show hoặc trạng thái đã thay đổi')
-        if b.invoice is not None:raise HTTPException(409,'Xử lý hóa đơn/tiền đã thu trước khi xác nhận no-show')
+        if b.invoice is not None or net_received(db,b.id)>0:raise HTTPException(409,'Xử lý hóa đơn/tiền đã thu trước khi xác nhận no-show')
         db.add(BookingStatusHistory(booking_id=b.id,from_status=b.status,to_status=BookingStatus.no_show,changed_by=actor.id))
         b.status=BookingStatus.no_show
         db.commit()

@@ -39,9 +39,19 @@ def detail(booking_id: int, db: Session = Depends(get_db), user=Depends(get_curr
     return booking_detail(db, booking_id, user.role.value)
 
 
-@router.post("/bookings/{booking_id}/{action}")
-def booking_action(booking_id: int, action: str, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.receptionist))):
-    return booking_action_service(booking_id=booking_id, action=action, db=db, actor_id=user.id)
+@router.post('/bookings/{booking_id}/check-in')
+def check_in(booking_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.receptionist))):
+    return booking_action_service(booking_id,'check-in',db,user.id)
+
+
+@router.post('/bookings/{booking_id}/check-out')
+def check_out(booking_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.receptionist))):
+    return booking_action_service(booking_id,'check-out',db,user.id)
+
+
+@router.post('/bookings/{booking_id}/cancel')
+def cancel(booking_id:int,db:Session=Depends(get_db),user=Depends(require_roles(Role.admin,Role.receptionist))):
+    return booking_action_service(booking_id,'cancel',db,user.id)
 
 
 @router.get("/bookings/{booking_id}/history")

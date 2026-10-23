@@ -1,3 +1,4 @@
+from .money_service import serialized_balance,net_received
 """Read-only reservation detail; opening a page never creates an invoice."""
 from decimal import Decimal
 from datetime import timedelta
@@ -41,13 +42,15 @@ def booking_detail(db, booking_id, role):
                 'at':h.changed_at.isoformat(), 'actor':names.get(h.changed_by, 'Hệ thống / chưa ghi người thao tác')} for h in booking.status_history]
     payments = [{'id':p.id, 'amount':amount(p.amount), 'at':p.paid_at.isoformat(), 'actor':names.get(p.paid_by, 'Chưa ghi người thu')} for p in invoice.payments] if invoice else []
     # Show unmatched legacy paid amounts explicitly instead of inventing transactions.
-    ledger_gap = invoice.paid_amount - sum((p.amount for p in invoice.payments), Decimal(0)) if invoice else Decimal(0)
+    ledger_gap = invoice.paid_amount - net_received(db,booking_id) if invoice else Decimal(0)
     frontdesk = role in ('admin', 'receptionist')
     finance = role in ('admin', 'accountant')
     if not finance:
         payments = []
     can_check_in = frontdesk and booking.status.value == 'confirmed' and booking.room.status.value == 'available' and booking.check_in<=hotel_today()<booking.check_out and not open_task(db,booking.room_id) and not maintenance_blocks(db,booking.room_id,hotel_today(),hotel_today()+timedelta(days=1))
     return {
+        'balance':serialized_balance(db,booking),
+        'can_deposit':role in ('admin','receptionist','accountant') and booking.status.value=='confirmed',
         'id':booking.id, 'code':booking.code, 'status':booking.status.value, 'created_at':booking.created_at.isoformat(),
         'check_in':booking.check_in.isoformat(), 'check_out':booking.check_out.isoformat(), 'guests':booking.guests,
         'nights_count':(booking.check_out-booking.check_in).days, 'note':booking.note,
@@ -65,7 +68,7 @@ def booking_detail(db, booking_id, role):
         'changes':[{'reason':c.reason,'at':c.changed_at.isoformat(),'actor':names.get(c.changed_by,'Hệ thống'),'before':c.before_data,'after':c.after_data} for c in changes],
         'can_change':frontdesk and booking.status.value in ('confirmed','checked_in'),
         'history':history, 'payments':payments, 'can_view_payments':finance,
-        'actions':{'check_in':can_check_in, 'cancel':frontdesk and booking.status.value == 'confirmed' and invoice is None,
+        'actions':{'check_in':can_check_in, 'cancel':frontdesk and booking.status.value == 'confirmed' and invoice is None and net_received(db,booking_id)==0,
                    'check_out':frontdesk and booking.status.value == 'checked_in', 'add_service':frontdesk and booking.status.value == 'checked_in',
                    'calculate':finance and booking.status.value not in ('cancelled','no_show','checked_out'),
                    'pay':finance and invoice is not None and invoice.paid_amount < invoice.total and booking.status.value not in ('cancelled','no_show')},

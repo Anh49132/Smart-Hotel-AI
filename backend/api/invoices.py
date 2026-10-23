@@ -19,6 +19,7 @@ def invoice(booking_id: int, discount: Decimal | None = None, db: Session = Depe
 
 @router.post("/invoices/{invoice_id}/payments",response_model=InvoiceOut)
 def pay(invoice_id: int, data: PaymentIn, db: Session = Depends(get_db), user=Depends(require_roles(Role.admin, Role.accountant))):
+    if not data.request_key:raise HTTPException(422,'Cần mã chống lặp request_key cho giao dịch tiền')
     return pay_service(invoice_id=invoice_id, data=data, db=db, actor_id=user.id)
 
 
