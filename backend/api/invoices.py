@@ -12,7 +12,7 @@ from fastapi import HTTPException
 router = APIRouter()
 
 @router.post("/invoices/{booking_id}/calculate")
-def invoice(booking_id: int, discount: Decimal = Decimal(0), db: Session = Depends(get_db), _=Depends(require_roles(Role.admin, Role.accountant))):
+def invoice(booking_id: int, discount: Decimal | None = None, db: Session = Depends(get_db), _=Depends(require_roles(Role.admin, Role.accountant))):
     return invoice_service(booking_id=booking_id, discount=discount, db=db)
 
 

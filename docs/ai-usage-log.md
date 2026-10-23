@@ -20,3 +20,9 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - AI hỗ trợ thiết kế khóa trên phòng trước đọc phòng trống: PostgreSQL khóa hàng, SQLite lấy khóa ghi bằng UPDATE không thay dữ liệu. Cùng thứ tự khóa được dùng cho nhận/trả, trạng thái phòng và ghi dịch vụ.
 - Sửa unique ngày tuyệt đối bằng migration giữ lịch sử, hủy lịch tương lai không đổi tình trạng vật lý, check-in yêu cầu phòng sẵn sàng và không có khách khác.
 - Kiểm chứng hai session thật chạy đồng thời: đặt chồng lịch, nhận phòng lặp và checkout cùng ghi dịch vụ; sát biên/đặt lại sau hủy vẫn hợp lệ. Test chạy trên cả PostgreSQL và SQLite.
+
+## C03 — Giá đã chốt và hóa đơn
+
+- Lưu đơn giá tại xác nhận booking; bản cũ có hóa đơn suy ra giá từ tiền phòng/số đêm, bản chưa có hóa đơn dùng giá hiện tại và đánh dấu nguồn `legacy_current_rate` (không khẳng định là giá lịch sử).
+- Giữ giảm giá khi tính lại/checkout, làm mới dịch vụ trước chốt, giữ nguyên tổng tiền phòng của hóa đơn lưu trú đã hoàn tất. Ràng buộc tổng, giảm giá và tiền thu tại DB.
+- Kiểm chứng: thay giá niêm yết, thêm dịch vụ sau lập hóa đơn tạm, giảm giá âm/quá tổng/sai độ chính xác, tổng 0, thu đồng thời và đối chiếu từng Payment. API tiền dùng Decimal tối đa hai chữ số thập phân.
