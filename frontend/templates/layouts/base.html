@@ -24,6 +24,7 @@
       <a class="{{'active' if active=='reports'}}" href="/reports"><i class="bi bi-bar-chart"></i>Báo cáo</a>
       <a class="{{'active' if active=='ai'}}" href="/ai"><i class="bi bi-stars"></i>Trợ lý AI <em>AI</em></a>
       {% if user.role.value=='admin' %}<p>HỆ THỐNG</p><a class="{{'active' if active=='users'}}" href="/users"><i class="bi bi-person-gear"></i>Nhân sự & quyền</a>{% endif %}
+      <a class="{{'active' if active=='account'}}" href="/account"><i class="bi bi-person-lock"></i>Tài khoản</a>
     </nav>
     <div class="sidebar-user"><div class="avatar">{{user.full_name[0]}}</div><span><b>{{user.full_name}}</b><small>{{user.role.value}}</small></span><a href="/logout" title="Đăng xuất"><i class="bi bi-box-arrow-right"></i></a></div>
   </aside>

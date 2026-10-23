@@ -6,4 +6,6 @@ from typing import Optional
 
 def authenticate(db: Session, username: str, password: str) -> Optional[User]:
     user = db.scalar(select(User).where(User.username == username))
-    return user if user and verify_password(password, user.password_hash) else None
+    if len(password.encode('utf-8')) > 72:
+        return None
+    return user if user and user.is_active and verify_password(password, user.password_hash) else None

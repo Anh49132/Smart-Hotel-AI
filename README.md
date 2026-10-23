@@ -1,10 +1,10 @@
 # Lotus Hotel AI.
 
-Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dựng bằng FastAPI, Jinja2, Bootstrap 5, SQLAlchemy, SQLite/MySQL và Google Gemini. Hệ thống hỗ trợ 3 vai trò (`admin`, `receptionist`, `accountant`), quản lý phòng, khách hàng, đặt/nhận/trả/hủy phòng, dịch vụ, hóa đơn, thanh toán, báo cáo, trợ lý AI và chatbot nghiệp vụ nhiều lượt.
+Hệ thống quản lý khách sạn cho khách sạn vừa và nhỏ, xây dựng bằng FastAPI, Jinja2, Bootstrap 5, SQLAlchemy, SQLite/PostgreSQL/MySQL và Google Gemini. Hệ thống hỗ trợ 3 vai trò (`admin`, `receptionist`, `accountant`), quản lý phòng, khách hàng, đặt/nhận/trả/hủy phòng, dịch vụ, hóa đơn, thanh toán, báo cáo, trợ lý AI và chatbot nghiệp vụ nhiều lượt.
 
 ## Cài đặt.
 
-Yêu cầu Python 3.11+. Mặc định dùng SQLite; có thể cấu hình MySQL 8+. Các tính năng AI cần Internet và API key Gemini trên backend.
+Yêu cầu Python 3.11+. Mặc định dùng SQLite; có thể cấu hình PostgreSQL (đích triển khai) hoặc MySQL 8+. Các tính năng AI cần Internet và API key Gemini trên backend.
 
 ```bash
 python -m venv .venv
@@ -42,7 +42,7 @@ Trên Windows, có thể nhấp đúp `run-hotel.bat` để tự động dò Pyt
 pytest -q
 ```
 
-Các test bao phủ tạo đặt phòng, chống trùng lịch, trả phòng/tính hóa đơn, sinh email AI và chatbot với Gemini được mock. Test transport kiểm tra payload một/nhiều lượt, parse kết quả, khóa chỉ nằm ở header, lọc dữ liệu nhạy cảm và lỗi thiếu key/quota/timeout/phản hồi không hợp lệ. Test không gọi Gemini thật hoặc tiêu thụ quota. Logic overlap dùng điều kiện `new_check_in < old_check_out AND old_check_in < new_check_out`; `SELECT ... FOR UPDATE` chỉ có tác dụng trên database hỗ trợ khóa hàng, không bảo đảm chống trùng đồng thời trên SQLite (xem báo cáo đánh giá trong `docs/`).
+Các test bao phủ tạo đặt phòng, chống trùng lịch, trả phòng/tính hóa đơn, sinh email AI và chatbot với Gemini được mock. Test transport kiểm tra payload một/nhiều lượt, parse kết quả, khóa chỉ nằm ở header, lọc dữ liệu nhạy cảm và lỗi thiếu key/quota/timeout/phản hồi không hợp lệ. Test không gọi Gemini thật hoặc tiêu thụ quota. Logic overlap dùng điều kiện `new_check_in < old_check_out AND old_check_in < new_check_out`; `SELECT ... FOR UPDATE` chỉ có tác dụng trên database hỗ trợ khóa hàng, SQLite dùng khóa ghi trước khi kiểm tra phòng trống. Bộ test chạy hai session đồng thời cho cả SQLite và PostgreSQL.
 
 Revision `0002` thêm lịch sử trạng thái đặt phòng, từng khoản thanh toán và bản nháp kết quả AI. Trước khi nâng cấp database cũ, xem [hướng dẫn migration](migrations/README.md) để sao lưu và khôi phục. API `/api/bookings/{id}/history` và `/api/invoices/{id}/payments` cho phép xem lịch sử; trang Trợ lý AI có danh sách duyệt kết quả cho quản trị viên/kế toán. Bản nháp AI vẫn cần người dùng kiểm tra trước khi sử dụng. Dữ liệu phát sinh trước revision `0002` không có lịch sử chi tiết để truy hồi.
 
@@ -90,3 +90,16 @@ run-hotel.bat      # Launcher Windows
 Đường dẫn template, static, `.env` và SQLite được xác định theo thư mục dự án, không phụ thuộc thư mục làm việc của tiến trình. URL trang và API vẫn giữ nguyên; CSS nằm dưới `/static/css/`.
 
 Sau khi cập nhật mã, chạy `python -m pip install -r requirements.txt`. Khi chuyển cấu trúc trên máy hiện tại, database gốc được giữ tại `data/hotel.before-restructure.db` để khôi phục; ứng dụng dùng `data/hotel.db`. Bản sao này không tự cập nhật theo dữ liệu mới.
+
+
+## Tài khoản và cấu hình production
+
+Hệ thống phục vụ nhân sự nội bộ. Admin tạo tài khoản tại Nhân sự & quyền; nhân sự phải đổi mật khẩu tạm tại Tài khoản trước khi thao tác. Không mở đăng ký công khai cho khách lưu trú. Admin có thể đổi vai trò, khóa/mở khóa và đặt lại mật khẩu người khác; không tự khóa hoặc tự đổi vai trò. Đổi/reset mật khẩu, đổi quyền, khóa/mở khóa làm mất hiệu lực các JWT cũ. Đổi mật khẩu cá nhân cấp phiên mới cho trình duyệt đang sử dụng.
+
+Khi triển khai HTTPS, đặt `APP_ENV=production`, `SECRET_KEY` ngẫu nhiên ít nhất 32 ký tự và chạy `python -m alembic upgrade head` trước khi khởi động. Production tắt tự tạo schema và seed demo, dùng cookie Secure/HttpOnly/SameSite=Lax. Database trống cần `BOOTSTRAP_ADMIN_PASSWORD` riêng (từ 8 ký tự, tối đa 72 byte UTF-8); sau tạo tài khoản có thể gỡ biến bootstrap. Production từ chối khởi động nếu có tài khoản hoạt động còn mật khẩu mẫu `Admin@123`. Với DB cũ, đổi mật khẩu trong môi trường local trước khi chuyển dữ liệu.
+
+Đăng nhập giới hạn 5 lần/tài khoản và 30 lần/IP trong cửa sổ 5 phút. Bộ đếm có giới hạn bộ nhớ và nằm trong một tiến trình: chạy một worker cho demo; nếu tăng worker/instance phải dùng kho đếm chung. Cookie API chặn nội dung form và Origin khác máy chủ; client nghiệp vụ gửi JSON cùng nguồn. Chính sách nghiệp vụ vẫn được kiểm tra ở backend.
+
+## Nhánh phát triển
+
+Git Flow: `main → dev → feature/...`. Tách feature từ dev, kiểm thử rồi nhập lại dev; nghiệm thu đợt rồi PR dev → main để phát hành. Render theo main. Xem [kế hoạch và phân công](docs/ke-hoach-hoan-thien-2-nguoi.md). Các merge local không thay thế review thực tế bằng tài khoản GitHub của người còn lại.

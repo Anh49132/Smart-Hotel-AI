@@ -43,6 +43,8 @@ def db():
 
 @pytest.fixture()
 def client(db):
+    from core.login_limiter import login_limiter
+    login_limiter.entries.clear()
     def override(): yield db
     app.dependency_overrides[get_db] = override
     with TestClient(app) as c:
