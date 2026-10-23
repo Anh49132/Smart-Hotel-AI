@@ -43,6 +43,7 @@ class User(Base):
 
 class RoomType(Base):
     __tablename__ = "room_types"
+    __table_args__ = (CheckConstraint("capacity > 0", name="ck_room_type_capacity"), CheckConstraint("nightly_rate > 0", name="ck_room_type_rate"))
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True)
     capacity: Mapped[int]
@@ -75,7 +76,7 @@ class Customer(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
-    __table_args__ = (UniqueConstraint("room_id", "check_in", "check_out", name="uq_booking_exact_dates"),)
+    __table_args__ = (UniqueConstraint("room_id", "check_in", "check_out", name="uq_booking_exact_dates"), CheckConstraint("check_out > check_in", name="ck_booking_dates"), CheckConstraint("guests > 0", name="ck_booking_guests"))
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(24), unique=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
@@ -95,6 +96,7 @@ class Booking(Base):
 
 class HotelService(Base):
     __tablename__ = "services"
+    __table_args__ = (CheckConstraint("price > 0", name="ck_service_price"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     unit: Mapped[str] = mapped_column(String(30), default="lần")
@@ -104,6 +106,7 @@ class HotelService(Base):
 
 class ServiceUsage(Base):
     __tablename__ = "service_usages"
+    __table_args__ = (CheckConstraint("quantity > 0", name="ck_usage_quantity"), CheckConstraint("unit_price >= 0", name="ck_usage_price"))
     id: Mapped[int] = mapped_column(primary_key=True)
     booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"))
     service_id: Mapped[int] = mapped_column(ForeignKey("services.id"))

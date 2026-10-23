@@ -1,7 +1,7 @@
 """Database URL handling shared by the app and offline migration tools."""
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import make_url
 
 from core.config import PROJECT_ROOT
@@ -33,4 +33,18 @@ def build_engine(value):
             # Render's private host has no dots. Public connections require TLS.
             if url.host and url.host not in ("localhost", "127.0.0.1", "::1") and "." in url.host and "sslmode" not in url.query:
                 options["connect_args"]["sslmode"] = "require"
-    return create_engine(url, **options)
+    engine = create_engine(url, **options)
+    if url.get_backend_name() == "sqlite":
+        @event.listens_for(engine, "connect")
+        def enforce_foreign_keys(connection, _):
+            previous = getattr(connection, "autocommit", None)
+            if previous is not None:
+                connection.autocommit = True
+            cursor = connection.cursor()
+            try:
+                cursor.execute("PRAGMA foreign_keys=ON")
+            finally:
+                cursor.close()
+                if previous is not None:
+                    connection.autocommit = previous
+    return engine
