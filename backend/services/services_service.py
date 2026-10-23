@@ -51,6 +51,8 @@ def use_service(data: ServiceUsageIn, db: Session):
             raise HTTPException(404, 'Không tìm thấy đặt phòng')
         lock_room(db, room_id)
         booking = db.scalar(select(Booking).where(Booking.id == data.booking_id).with_for_update().execution_options(populate_existing=True))
+        if booking.room_id != room_id:
+            raise HTTPException(409, 'Đặt phòng vừa đổi phòng, hãy tải lại và thử lại')
         service = db.get(HotelService, data.service_id)
         if not service:
             raise HTTPException(404, 'Không tìm thấy dịch vụ')

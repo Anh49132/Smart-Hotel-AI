@@ -55,3 +55,11 @@ Các mục dưới đây ghi công việc thực tế trong phiên hỗ trợ, k
 - Người dùng yêu cầu thử tạo/push C06 bằng đăng nhập GitHub thật của Khanh; tác giả commit Khanh và tài khoản push được xác minh riêng, không dùng tên/email Git để giả định tài khoản push.
 - Kiểm chứng C05+C06: PostgreSQL 100 passed; SQLite 98 passed/2 skipped. Test cả luồng lưu trú, ba vai trò, dữ liệu trống/legacy/hủy/không tồn tại, XSS ghi chú, chênh lệch lịch sử thu và không có tác dụng phụ khi xem. Không gọi Gemini thật.
 - DB local đã sao lưu trước C05, nâng 0006→0007, đối chiếu số dòng/tổng hóa đơn và FK/integrity đạt; các trang đã render bằng DB local và JavaScript nội tuyến được kiểm tra cú pháp bằng Node. Chưa thực hiện kiểm thử tương tác trình duyệt hoặc triển khai Render trong đợt này.
+
+
+## C07 — Sửa lịch, gia hạn và đổi phòng
+
+- Thêm room_stays và audit booking_changes; migration backfill chặng từ lịch cũ. Mọi truy vấn phòng trống/AI dùng các chặng, có fallback cho bản ghi legacy chưa có chặng.
+- Khóa phòng theo thứ tự ID rồi booking/loại phòng, yêu cầu preview + expected_total; xung đột hoặc tổng hóa đơn thấp hơn tiền đã thu rollback toàn bộ. Giá đêm đã ở được giữ, đổi phòng đang ở có hiệu lực hôm nay Asia/Bangkok; phòng cũ cần dọn. Dữ liệu legacy thiếu giá đêm phải đối chiếu trước khi đổi khi đang ở.
+- API/giao diện chi tiết hỗ trợ xem giá và xác nhận, hiển thị các chặng và audit. Kiểm tra phòng vừa thay đổi để các thao tác đồng thời không sửa tình trạng phòng cũ.
+- Test thay đổi xác nhận, lỗi trùng rollback, đổi giữa kỳ/giữ giá, sát biên, giá cần xác nhận, quyền/render và migration. SQLite nhóm C07/detail/migration 13 đạt, 1 bỏ qua PostgreSQL; nhóm PostgreSQL và toàn bộ hồi quy được ghi ở cuối đợt C07–C12.

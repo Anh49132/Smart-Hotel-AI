@@ -10,6 +10,14 @@
 </div></div>
 {% if detail.status=='confirmed' and detail.room.status!='available' %}<div class="alert alert-info">Phòng hiện {{status_label(detail.room.status)}}. Nhận phòng chỉ thực hiện khi buồng phòng đã sẵn sàng.</div>{% endif %}
 {% if detail.status=='confirmed' and detail.invoice %}<div class="alert alert-info">Đặt phòng đã có hóa đơn. Cần xử lý điều chỉnh/hoàn tiền trước khi hủy.</div>{% endif %}
+{% if detail.can_change %}<details class="panel p-4 mb-4"><summary>Đổi phòng / sửa ngày / gia hạn</summary><form id="changeBookingForm" class="row g-2 mt-2">
+<div class="col-md-3"><label>Phòng đích</label><select name="room_id" id="changeRoom" class="form-select" required></select></div>
+<div class="col-md-3"><label>Ngày nhận</label><input name="check_in" type="date" class="form-control" value="{{detail.check_in}}" required {{'readonly' if detail.status=='checked_in'}}></div>
+<div class="col-md-3"><label>Ngày trả</label><input name="check_out" type="date" class="form-control" value="{{detail.check_out}}" required></div>
+<div class="col-md-12"><label>Lý do</label><input name="reason" class="form-control" minlength="3" maxlength="500" required></div>
+<p class="text-secondary">Khách đang ở đổi phòng từ hôm nay theo giờ Asia/Bangkok; các đêm trước giữ nguyên giá. Phòng cũ chuyển sang cần dọn.</p>
+<p id="changeQuote" role="status"></p><div><button id="previewChange" type="button" class="btn btn-outline-primary">Xem giá mới</button> <button id="applyChange" class="btn btn-primary" disabled>Xác nhận thay đổi</button></div></form></details>{% endif %}
+<div class="panel p-4 mb-4"><h2 class="h5">Các chặng phân phòng</h2>{% for s in detail.stays %}<p class="mb-1">Phòng {{s.room}} · {{s.check_in}} → {{s.check_out}}</p>{% else %}<p>Chưa có chặng phân phòng được ghi.</p>{% endfor %}</div>
 <div class="row g-4">
 <div class="col-lg-7"><div class="panel p-4"><h2 class="h5">Khách & lưu trú</h2><dl class="row mb-0">
 <dt class="col-sm-4">Khách hàng</dt><dd class="col-sm-8">{{detail.customer.name}}</dd>
@@ -38,6 +46,8 @@
 {% if detail.invoice and detail.invoice.ledger_gap|float != 0 %}<div class="alert alert-warning">Chênh lệch giữa số đã thu và giao dịch được ghi: {{currency(detail.invoice.ledger_gap)}}. Dữ liệu cũ có thể chưa có lịch sử; cần đối chiếu chứng từ.</div>{% endif %}
 <ul class="list-group">{% for p in detail.payments %}<li class="list-group-item"><b>{{currency(p.amount)}}</b><small class="d-block text-secondary">{{p.at}} UTC · {{p.actor}}</small></li>{% else %}<li class="list-group-item text-secondary">Chưa có giao dịch được ghi.</li>{% endfor %}</ul></div>{% endif %}
 </div></div>
+<div class="panel p-4 mt-4"><h2 class="h5">Lịch sử sửa đặt phòng</h2>{% for c in detail.changes %}<div class="border-bottom py-2"><b>{{c.reason}}</b><small class="d-block">{{c.at}} UTC · {{c.actor}}</small><details><summary>Chi tiết trước / sau</summary><pre style="white-space:pre-wrap">{{c.before}}
+→ {{c.after}}</pre></details></div>{% else %}<p class="text-secondary">Chưa có thay đổi.</p>{% endfor %}</div>
 {% endblock %}
 {% block scripts %}<script>
 const detailBookingId={{detail.id}},detailInvoiceId={{detail.invoice.id if detail.invoice else 'null'}};
@@ -46,4 +56,5 @@ document.querySelectorAll('.detail-action').forEach(b=>b.onclick=()=>{const labe
 const serviceForm=document.getElementById('detailServiceForm');if(serviceForm)serviceForm.onsubmit=e=>{e.preventDefault();detailMutation(e.submitter,'/api/service-usages',{booking_id:detailBookingId,service_id:+serviceForm.elements.service_id.value,quantity:+serviceForm.elements.quantity.value})};
 const calculateButton=document.getElementById('calculateDetailInvoice');if(calculateButton)calculateButton.onclick=()=>detailMutation(calculateButton,`/api/invoices/${detailBookingId}/calculate`);
 const paymentForm=document.getElementById('detailPaymentForm');if(paymentForm)paymentForm.onsubmit=e=>{e.preventDefault();if(confirm('Xác nhận đã nhận số tiền này từ khách?'))detailMutation(e.submitter,`/api/invoices/${detailInvoiceId}/payments`,{amount:paymentForm.elements.amount.value})};
+const changeForm=document.getElementById('changeBookingForm');if(changeForm){let quoted=null;const apply=document.getElementById('applyChange'),out=document.getElementById('changeQuote');apiRequest('/api/rooms').then(rooms=>{const select=document.getElementById('changeRoom');rooms.forEach(r=>{const option=document.createElement('option');option.value=r.id;option.textContent=`${r.number} · ${r.room_type.name}`;option.selected=r.number==={{detail.room.number|tojson}};select.append(option)})}).catch(err=>showToast(err.message,false));changeForm.oninput=()=>{quoted=null;apply.disabled=true;out.textContent='Cần xem lại giá mới'};document.getElementById('previewChange').onclick=async e=>{if(!changeForm.reportValidity())return;const b=e.target;b.disabled=true;try{const d=formJSON(changeForm);d.room_id=+d.room_id;const q=await apiRequest(`/api/booking-changes/${detailBookingId}/preview`,{method:'POST',body:JSON.stringify(d)});quoted={...d,expected_total:q.new_room_total};out.textContent=`Tiền phòng cũ: ${Number(q.old_room_total).toLocaleString('vi-VN')} ₫. Mới: ${Number(q.new_room_total).toLocaleString('vi-VN')} ₫. Chênh lệch: ${Number(q.difference).toLocaleString('vi-VN')} ₫`;apply.disabled=false}catch(err){showToast(err.message,false)}finally{b.disabled=false}};changeForm.onsubmit=async e=>{e.preventDefault();if(!quoted)return;apply.disabled=true;try{await apiRequest(`/api/bookings/${detailBookingId}`,{method:'PUT',body:JSON.stringify(quoted)});location.reload()}catch(err){showToast(err.message,false);quoted=null;out.textContent='Cần xem và xác nhận lại giá'}}}
 </script>{% endblock %}

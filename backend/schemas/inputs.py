@@ -99,6 +99,20 @@ class ServiceIn(BaseModel):
     active: bool = True
 
 
+class BookingChangeIn(BaseModel):
+    room_id: int
+    check_in: date
+    check_out: date
+    reason: str = Field(min_length=3, max_length=500)
+    expected_total: Optional[Decimal] = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+
+    @model_validator(mode='after')
+    def dates(self):
+        if not 1 <= (self.check_out-self.check_in).days <= 365:
+            raise ValueError('Khoảng lưu trú phải từ 1 đến 365 đêm')
+        return self
+
+
 class ServiceUsageIn(BaseModel):
     booking_id: int
     service_id: int

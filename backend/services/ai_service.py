@@ -1,3 +1,4 @@
+from .inventory_service import blocked_rooms
 from .booking_service import ACTIVE_BOOKING_STATUSES
 from .rates_service import quote
 from backend.models import Booking, BookingStatus, HotelService, Invoice, Room, RoomStatus, RoomType
@@ -103,7 +104,7 @@ async def hotel_chat(db: Session, messages) -> str:
 
 
 def available_rooms(db: Session, check_in, check_out, guests: int, budget: Decimal):
-    blocked = select(Booking.room_id).where(Booking.status.in_(ACTIVE_BOOKING_STATUSES), Booking.check_in < check_out, check_in < Booking.check_out)
+    blocked = blocked_rooms(check_in, check_out)
     rooms = db.scalars(select(Room).join(RoomType).where(Room.id.not_in(blocked), RoomType.capacity >= guests, RoomType.is_active.is_(True), Room.status != RoomStatus.maintenance)).all()
     # A nightly budget is a ceiling for every night, including weekend/holiday prices.
     prices = {}

@@ -1,3 +1,4 @@
+from .inventory_service import blocked_rooms
 from backend.models import Booking, BookingStatus, Room, RoomStatus, RoomType
 from backend.schemas import RoomIn, RoomTypeIn
 from datetime import date
@@ -22,7 +23,7 @@ def list_rooms(check_in: Optional[date], check_out: Optional[date], guests: int,
     if check_in and check_out:
         if check_out <= check_in:
             raise HTTPException(422, 'Ngày trả phải sau ngày nhận')
-        blocked = select(Booking.room_id).where(Booking.status.in_((BookingStatus.confirmed, BookingStatus.checked_in)), Booking.check_in < check_out, check_in < Booking.check_out)
+        blocked = blocked_rooms(check_in, check_out)
         query = query.where(Room.id.not_in(blocked), Room.status != RoomStatus.maintenance, RoomType.capacity >= guests, RoomType.is_active.is_(True))
     rooms = db.scalars(query).all()
     results = []
