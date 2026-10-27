@@ -31,7 +31,7 @@ Mở http://127.0.0.1:8000. .env chứa DATABASE_URL, GEMINI_API_KEY và GEMINI_
 
 Development mặc định tạo admin/Admin@123 chỉ cho local và buộc đổi lần đầu. Production yêu cầu SECRET_KEY ngẫu nhiên ít nhất 32 ký tự, BOOTSTRAP_ADMIN_PASSWORD riêng và PostgreSQL. Không dùng mật khẩu mẫu trên Internet. `python -m scripts.start_server` chạy migration có khóa trước khi phục vụ; production không tự create_all.
 
-Demo đầy đủ chỉ dành CSDL mới riêng: DEMO_MODE=true, DEMO_SEED_ON_START=true, DEMO_STAFF_PASSWORD riêng từ 12 ký tự. Seed tạo 12 phòng/21 booking giả, nhân sự và mẫu tài chính một lần; chạy lại không reset dữ liệu/mật khẩu. Không bật seed trên khách sạn đang có dữ liệu. Xem [dữ liệu demo/UX](docs/demo-data-and-ux.md).
+Demo đầy đủ chỉ dành CSDL mới riêng: DEMO_MODE=true, DEMO_SEED_ON_START=true, DEMO_STAFF_PASSWORD riêng từ 12 ký tự. Seed tạo 12 phòng/33 booking giả, gồm dữ liệu báo cáo tháng 8–11, nhân sự và mẫu tài chính một lần; chạy lại không reset dữ liệu/mật khẩu. Không bật seed trên khách sạn đang có dữ liệu. Xem [dữ liệu demo/UX](docs/demo-data-and-ux.md).
 
 Windows có thể dùng run-hotel.bat; kiểm tra môi trường trước khi dùng dữ liệu hiện tại. Database local, .env, backup và file *.local.json không được đưa vào Git.
 
