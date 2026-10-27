@@ -62,6 +62,20 @@ def seed_monthly_samples(db,year,anchor):
     db.flush()
     return len(schedule)
 
+def extend_existing_demo_months(db,anchor=None):
+    anchor=anchor or hotel_today()
+    with write_transaction(db):
+        if db.get_bind().dialect.name=='postgresql':db.execute(text('SELECT pg_advisory_xact_lock(3318027022)'))
+        else:db.execute(update(User).values(id=User.id))
+        marker=db.get(DemoSeed,'lotus-demo-v1')
+        if not marker:
+            db.rollback()
+            return None
+        added=seed_monthly_samples(db,marker.anchor_date.year,anchor)
+        if added:db.commit()
+        else:db.rollback()
+        return {'already_seeded':True,'monthly_bookings_added':added}
+
 def seed_demo(db,password,anchor=None):
     if len(password)<12 or len(password.encode('utf-8'))>72:raise ValueError('Demo requires a private password (12+ chars, <=72 UTF-8 bytes)')
     anchor=anchor or hotel_today()
