@@ -11,6 +11,70 @@ from .transactions import write_transaction
 def stamp(day,hour=11):return datetime.combine(day,time(hour),timezone(timedelta(hours=7))).astimezone(timezone.utc).replace(tzinfo=None)
 
 MONTHLY_SEED='lotus-demo-months-v1'
+SAMPLE_LABEL_REFRESH='lotus-sample-labels-v2'
+
+def refresh_seeded_sample_labels(db):
+    """Normalize only records identifiable as the original generated sample set."""
+    with write_transaction(db):
+        if db.get_bind().dialect.name=='postgresql':db.execute(text('SELECT pg_advisory_xact_lock(3318027022)'))
+        else:db.execute(update(User).values(id=User.id))
+        marker=db.get(DemoSeed,'lotus-demo-v1')
+        if not marker or db.get(DemoSeed,SAMPLE_LABEL_REFRESH):
+            db.rollback()
+            return 0
+
+        changed=0
+        names=('Nguyễn Minh Anh','Trần Gia Huy','Lê Thu Hà','Phạm Quang Vinh',
+               'Đỗ Bảo Ngọc','Hoàng Đức Anh','Vũ Khánh Linh','Bùi Hải Nam')
+        customers=db.scalars(select(Customer).where(Customer.full_name.like('Khách Demo %')).order_by(Customer.id)).all()
+        for index,customer in enumerate(customers):
+            customer.full_name=names[index%len(names)]
+            changed+=1
+        for item in db.scalars(select(RoomType).where(RoomType.name.like('DEMO %'))):
+            name=item.name[5:]
+            if db.scalar(select(RoomType.id).where(RoomType.name==name,RoomType.id!=item.id)):name=f'{name} Lotus'
+            item.name=name
+            changed+=1
+        for service in db.scalars(select(HotelService).where(HotelService.name.like('DEMO %'))):
+            name={'Ăn sáng':'Bữa sáng','Đưa đón':'Đưa đón sân bay'}.get(service.name[5:],service.name[5:])
+            if db.scalar(select(HotelService.id).where(HotelService.name==name,HotelService.id!=service.id)):name=f'{name} lưu trú'
+            service.name=name
+            changed+=1
+        for user in db.scalars(select(User).where(User.username.in_(['demo_receptionist','demo_accountant','demo_housekeeping']))):
+            role_names={'demo_receptionist':('receptionist01','Nhân viên lễ tân'),
+                        'demo_accountant':('accountant01','Nhân viên kế toán'),
+                        'demo_housekeeping':('housekeeping01','Nhân viên buồng phòng')}
+            new_username,new_name=role_names[user.username]
+            if not db.scalar(select(User.id).where(User.username==new_username,User.id!=user.id)):
+                user.username=new_username
+            user.full_name=new_name
+            changed+=1
+
+        bookings=db.scalars(select(Booking).where(Booking.code.like('DEMO-%'))).all()
+        booking_ids=[booking.id for booking in bookings]
+        for booking in bookings:
+            code='LH-'+booking.code[5:]
+            if db.scalar(select(Booking.id).where(Booking.code==code,Booking.id!=booking.id)):code='LH26-'+booking.code[5:]
+            booking.code=code
+            booking.note=(booking.note or '').replace('Dữ liệu giả phục vụ báo cáo theo tháng','Lưu trú theo kế hoạch tháng').replace('Dữ liệu giả phục vụ báo cáo','Lưu trú theo kế hoạch')
+            if booking.booked_rate_source=='demo_snapshot':booking.booked_rate_source='confirmed'
+            changed+=1
+        for night in db.scalars(select(BookingNight).where(BookingNight.source.like('DEMO %'))):
+            night.source=night.source[5:]
+            changed+=1
+        if booking_ids:
+            for entry in db.scalars(select(MoneyEntry).where(MoneyEntry.booking_id.in_(booking_ids))):
+                if entry.reference=='DEMO-NO-BANK':entry.reference=''
+                if (entry.request_key or '').startswith('demo-'):entry.request_key='stay-'+entry.request_key[5:]
+            for adjustment in db.scalars(select(FinancialAdjustment).where(FinancialAdjustment.booking_id.in_(booking_ids))):
+                if (adjustment.reason or '').startswith('DEMO: '):adjustment.reason=adjustment.reason[6:]
+                if (adjustment.request_key or '').startswith('demo-'):adjustment.request_key='stay-'+adjustment.request_key[5:]
+            for block in db.scalars(select(RoomBlock).where(RoomBlock.description=='DEMO: bảo trì điều hòa')):
+                block.description=block.description[5:].strip()
+                changed+=1
+        db.add(DemoSeed(name=SAMPLE_LABEL_REFRESH,anchor_date=marker.anchor_date))
+        db.commit()
+        return changed
 
 def seed_monthly_samples(db,year,anchor):
     if db.get(DemoSeed,MONTHLY_SEED):return 0

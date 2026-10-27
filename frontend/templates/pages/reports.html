@@ -1,8 +1,98 @@
-{% extends 'layouts/base.html' %}{% block title %}Báo cáo vận hành{% endblock %}{% block content %}
-<div class="page-head"><div><h1>Báo cáo vận hành</h1><p>Số liệu theo ngày khách sạn (UTC+7). Ngày kết thúc không bao gồm.</p></div><a class="btn btn-light border" href="/api/reports/operations.csv?start={{report.start}}&end={{report.end}}">Xuất CSV</a></div>
-<form class="panel p-3 d-flex flex-wrap gap-3 mb-4" method="get"><label>Từ ngày<input class="form-control" name="start" type="date" value="{{report.start}}" required></label><label>Đến trước ngày<input class="form-control" name="end" type="date" value="{{report.end}}" required></label><button class="btn btn-primary">Xem báo cáo</button></form>
-<div class="row g-3 mb-4">{% for title,value in [('Công suất theo lịch',report.occupancy|string+'%'),('Đêm phòng phân bổ',report.allocated_nights),('Đêm phòng có thể bán',report.sellable_nights),('Lịch lưu trú trong kỳ',report.booking_count)] %}<div class="col-sm-6 col-xl-3"><div class="stat-card"><small>{{title}}</small><h3>{{value}}</h3></div></div>{% endfor %}</div>
-{% if report.inventory_conflicts %}<div class="alert alert-warning">Có {{report.inventory_conflicts}} đêm phòng vừa phân bổ vừa bị khóa bảo trì. Cần kiểm tra lịch phòng.</div>{% endif %}
-<div class="row g-4"><div class="col-lg-6"><div class="panel p-4"><h3>Doanh thu ghi nhận trong kỳ</h3><p>Hóa đơn phát hành: {{report.invoice_gross|money}}<br>Điều chỉnh hủy/no-show theo ngày ghi: {{report.adjustments|money}}<br><b>Ròng: {{report.invoice_net|money}}</b></p><h3>Tiền ghi nhận trong kỳ</h3><p>Thu: {{report.received|money}} · Hoàn: {{report.refunded|money}}<br><b>Thu ròng: {{report.net_cash|money}}</b><br>Trong thu có cọc: {{report.deposits|money}}</p><table class="table"><thead><tr><th>Phương thức</th><th>Thu</th><th>Hoàn</th></tr></thead><tbody>{% for method,m in report.cash.items() %}<tr><td>{{{'cash':'Tiền mặt','bank_transfer':'Chuyển khoản','unknown':'Dữ liệu cũ chưa rõ'}.get(method)}}</td><td>{{m['in']|money}}</td><td>{{m['out']|money}}</td></tr>{% endfor %}</tbody></table></div></div>
-<div class="col-lg-6"><div class="panel p-4"><h3>Số dư hiện tại toàn khách sạn</h3><p>Công nợ hóa đơn: {{report.receivables_now|money}}<br>Tiền thừa sau quyết toán: {{report.credits_now|money}}<br>Đã thu chưa phân bổ hóa đơn: {{report.deposits_unallocated_now|money}}</p><p class="text-secondary">Số dư tại thời điểm xem, không phải công nợ lịch sử tại ngày kết thúc báo cáo.</p><h3>Cách tính</h3><ul><li>Công suất theo lịch = đêm phân bổ / đêm có thể bán × 100%. Gồm lịch xác nhận, đang ở, đã trả; loại hủy và no-show. Chưa xác nhận khách đến: {{report.confirmed_count}} lịch.</li><li>Theo từng chặng đổi phòng; loại trùng phòng/ngày. Quy mô hiện tại × số ngày: {{report.capacity_nights}} đêm, trừ {{report.blocked_nights}} đêm khóa bảo trì. Phiếu đã xử lý kết thúc trước ngày xử lý; phiếu hủy không trừ.</li><li>Chưa có lịch sử tăng/giảm quy mô hoặc bảo trì thủ công: dùng quy mô hiện tại và phiếu có ngày. Đây là công suất theo lịch, không phải đêm khách thực ở.</li><li>Thu/hoàn theo ngày giao dịch, không cộng Payment lần hai. Số dư cũ chưa biết ngày thu được loại khỏi dòng tiền: {{report.legacy_opening_excluded|money}}.</li><li>Hóa đơn theo ngày phát hành; điều chỉnh theo ngày quyết toán, không đổi ngày thu tiền.</li></ul></div></div></div>
+{% extends 'layouts/base.html' %}
+{% block title %}Báo cáo vận hành{% endblock %}
+{% block content %}
+<div class="reports-page">
+  <div class="page-head reports-head">
+    <div>
+      <p class="eyebrow mb-1">PHÂN TÍCH HOẠT ĐỘNG</p>
+      <h1>Báo cáo &amp; phân tích</h1>
+      <p>Theo dõi công suất, doanh thu và hoạt động đặt phòng trong kỳ.</p>
+    </div>
+    <a class="btn btn-light border" href="/api/reports/operations.csv?start={{ report.start }}&amp;end={{ report.end }}"><i class="bi bi-download me-2"></i>Xuất CSV</a>
+  </div>
+
+  <form class="panel reports-filter" method="get" aria-label="Lọc kỳ báo cáo">
+    <label class="reports-field"><span>Từ ngày</span><input class="form-control" name="start" type="date" value="{{ report.start }}" required></label>
+    <label class="reports-field"><span>Đến trước ngày</span><input class="form-control" name="end" type="date" value="{{ report.end }}" required></label>
+    <button class="btn btn-primary"><i class="bi bi-bar-chart-line me-2"></i>Xem báo cáo</button>
+    <span class="reports-timezone"><i class="bi bi-clock me-1"></i>Ngày khách sạn (UTC+7) · ngày kết thúc không bao gồm</span>
+  </form>
+
+  {% if report.inventory_conflicts %}
+  <div class="alert alert-warning d-flex gap-2 align-items-start" role="alert"><i class="bi bi-exclamation-triangle-fill mt-1"></i><span>Có {{ report.inventory_conflicts }} đêm phòng vừa được phân bổ vừa bị khóa bảo trì. Vui lòng kiểm tra lịch phòng.</span></div>
+  {% endif %}
+
+  <div class="row g-3 reports-kpis">
+    <div class="col-6 col-xl-3"><article class="stat-card reports-kpi"><span class="reports-kpi-icon blue"><i class="bi bi-speedometer2"></i></span><small>Công suất theo lịch</small><strong>{{ report.occupancy }}%</strong><span class="reports-kpi-note">Đêm phân bổ trên đêm có thể bán</span></article></div>
+    <div class="col-6 col-xl-3"><article class="stat-card reports-kpi"><span class="reports-kpi-icon purple"><i class="bi bi-moon-stars"></i></span><small>Đêm phòng phân bổ</small><strong>{{ report.allocated_nights }}</strong><span class="reports-kpi-note">Trong khoảng ngày đã chọn</span></article></div>
+    <div class="col-6 col-xl-3"><article class="stat-card reports-kpi"><span class="reports-kpi-icon green"><i class="bi bi-door-open"></i></span><small>Đêm phòng có thể bán</small><strong>{{ report.sellable_nights }}</strong><span class="reports-kpi-note">Đã trừ ngày khóa bảo trì</span></article></div>
+    <div class="col-6 col-xl-3"><article class="stat-card reports-kpi"><span class="reports-kpi-icon orange"><i class="bi bi-calendar2-check"></i></span><small>Lịch lưu trú trong kỳ</small><strong>{{ report.booking_count }}</strong><span class="reports-kpi-note">{{ report.confirmed_count }} lịch chưa nhận phòng</span></article></div>
+  </div>
+
+  <div class="row g-4 reports-main-grid">
+    <div class="col-xl-7">
+      <section class="panel reports-panel h-100" aria-labelledby="revenueTitle">
+        <div class="reports-section-head"><div><h2 id="revenueTitle">Doanh thu và dòng tiền</h2><p>Phân biệt hóa đơn phát hành với tiền thực thu/hoàn trong kỳ.</p></div><span class="reports-section-icon"><i class="bi bi-currency-exchange"></i></span></div>
+        <div class="reports-revenue-summary">
+          <div><span>Hóa đơn phát hành</span><strong>{{ report.invoice_gross|money }}</strong></div>
+          <div><span>Điều chỉnh hủy / no-show</span><strong>{{ report.adjustments|money }}</strong></div>
+          <div class="reports-net"><span>Doanh thu hóa đơn ròng</span><strong>{{ report.invoice_net|money }}</strong></div>
+        </div>
+        <div class="reports-cash-head"><div><h3>Thu và hoàn tiền</h3><p>Ghi nhận theo ngày giao dịch</p></div><div class="reports-net-cash"><span>Thu ròng</span><strong>{{ report.net_cash|money }}</strong></div></div>
+        <div class="reports-cash-bars" aria-label="Thu và hoàn tiền theo phương thức">
+          {% for method, values in report.cash.items() %}
+            {% set label = {'cash':'Tiền mặt','bank_transfer':'Chuyển khoản','unknown':'Dữ liệu cũ chưa rõ'}.get(method, method) %}
+            <div class="reports-cash-row">
+              <div class="reports-method-name"><span>{{ label }}</span><small>Thu {{ values['in']|money }} <span class="text-secondary">· Hoàn {{ values['out']|money }}</span></small></div>
+              <div class="reports-bar-pair" aria-hidden="true"><span class="reports-bar-in" style="width: {{ (values['in'] / report.received * 100) if report.received else 0 }}%"></span><span class="reports-bar-out" style="width: {{ (values['out'] / report.refunded * 100) if report.refunded else 0 }}%"></span></div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="reports-cash-legend"><span><i class="reports-legend-in"></i>Tiền thu</span><span><i class="reports-legend-out"></i>Tiền hoàn</span><span class="ms-auto">Tiền cọc đã thu: <b>{{ report.deposits|money }}</b></span></div>
+        <div class="reports-current-balance"><strong>Số dư hiện tại toàn khách sạn</strong><span>Công nợ hóa đơn <b>{{ report.receivables_now|money }}</b></span><span>Tiền thừa sau quyết toán <b>{{ report.credits_now|money }}</b></span><span>Cọc chưa phân bổ hóa đơn <b>{{ report.deposits_unallocated_now|money }}</b></span><small>Số dư tại thời điểm xem, không phải số dư lịch sử tại ngày kết thúc báo cáo.</small></div>
+      </section>
+    </div>
+
+    <div class="col-xl-5">
+      <section class="panel reports-ai-panel h-100" aria-labelledby="aiReportTitle">
+        <div class="reports-section-head"><div><p class="eyebrow mb-1">PHÂN TÍCH CÓ KIỂM SOÁT</p><h2 id="aiReportTitle">Nhận xét AI</h2></div><span class="reports-draft-badge"><i class="bi bi-stars me-1"></i>BẢN NHÁP</span></div>
+        <p class="reports-ai-intro">AI tóm tắt các chỉ số đã tổng hợp và đưa ra gợi ý tham khảo. Nhân viên cần rà soát trước khi sử dụng.</p>
+        <div class="reports-ai-facts"><div><span>Công suất</span><b>{{ report.occupancy }}%</b></div><div><span>Doanh thu hóa đơn ròng</span><b>{{ report.invoice_net|money }}</b></div><div><span>Thu tiền ròng</span><b>{{ report.net_cash|money }}</b></div></div>
+        <button id="reportsAiButton" type="button" class="btn btn-primary w-100"><i class="bi bi-stars me-2"></i>Tạo nhận xét cho kỳ này</button>
+        <div id="reportsAiResult" class="reports-ai-result d-none" aria-live="polite"></div>
+        <div class="reports-ai-foot"><i class="bi bi-shield-check"></i><span>AI không tự thay đổi giá, đặt phòng hoặc áp dụng khuyến mại.</span></div>
+      </section>
+    </div>
+  </div>
+
+  <details class="panel reports-methodology">
+    <summary><span><i class="bi bi-info-circle me-2"></i>Cách tính và phạm vi số liệu</span><i class="bi bi-chevron-down"></i></summary>
+    <ul>
+      <li>Công suất theo lịch = đêm phân bổ / đêm có thể bán × 100%. Bao gồm lịch xác nhận, đang lưu trú và đã trả; không gồm lịch hủy/no-show. Đây không phải số đêm khách thực tế ở.</li>
+      <li>Quy mô phòng hiện tại nhân số ngày trong kỳ; trừ {{ report.blocked_nights }} đêm khóa bảo trì. Tổng cơ sở tính là {{ report.capacity_nights }} đêm. Các chặng đổi phòng được tính riêng và loại trùng phòng/ngày.</li>
+      <li>Hóa đơn tính theo ngày phát hành; điều chỉnh hủy/no-show theo ngày quyết toán; thu/hoàn tính theo ngày giao dịch. Không cộng bản ghi Payment tương thích lần thứ hai.</li>
+      <li>Số dư công nợ hiển thị là số hiện tại tại lúc xem. Số dư cũ không xác định được ngày thu ({{ report.legacy_opening_excluded|money }}) được loại khỏi dòng tiền theo kỳ.</li>
+    </ul>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const reportsAiButton=document.getElementById('reportsAiButton');
+reportsAiButton?.addEventListener('click',async()=>{
+  const output=document.getElementById('reportsAiResult');
+  const params=new URLSearchParams({start:{{ report.start.isoformat()|tojson }},end:{{ report.end.isoformat()|tojson }}});
+  reportsAiButton.disabled=true;
+  reportsAiButton.innerHTML='<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Đang tổng hợp số liệu...';
+  output.classList.remove('d-none','is-error');
+  output.textContent='Gemini đang phân tích các số liệu đã tổng hợp.';
+  try{
+    const result=await apiRequest(`/api/ai/report?${params}`,{method:'POST',body:'{}'});
+    output.textContent=result.content;
+    const link=document.createElement('a');link.href='/ai';link.className='btn btn-sm btn-outline-primary mt-3';link.textContent='Mở Trợ lý AI để duyệt bản nháp';output.append(document.createElement('br'),link);
+  }catch(error){output.classList.add('is-error');output.textContent=error.message}
+  finally{reportsAiButton.disabled=false;reportsAiButton.innerHTML='<i class="bi bi-stars me-2"></i>Tạo lại nhận xét'}
+});
+</script>
 {% endblock %}
