@@ -27,7 +27,7 @@ def sanitize_free_text(value: str) -> str:
     return value
 
 
-async def generate_content(contents: list[dict], system: str, response_schema: dict | None = None) -> str:
+async def generate_content(contents: list[dict], system: str, response_schema: dict | None = None, temperature: float = 1) -> str:
     api_key = settings.gemini_api_key.get_secret_value().strip()
     if not api_key:
         raise HTTPException(503, "Chưa cấu hình GEMINI_API_KEY trong .env. Thêm API key rồi khởi động lại ứng dụng.")
@@ -38,7 +38,7 @@ async def generate_content(contents: list[dict], system: str, response_schema: d
             {"role": item["role"], "parts": [{"text": redact_secrets(part["text"])} for part in item["parts"]]}
             for item in contents
         ],
-        "generationConfig": {"temperature": 1, "maxOutputTokens": settings.gemini_max_output_tokens},
+        "generationConfig": {"temperature": temperature, "maxOutputTokens": settings.gemini_max_output_tokens},
     }
     if response_schema is not None:
         # REST schema fields: https://ai.google.dev/api/generate-content#v1beta.GenerationConfig
