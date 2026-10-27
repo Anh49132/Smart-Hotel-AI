@@ -2,7 +2,6 @@ from backend.api.router import router as api_router
 from backend.models import HotelService, Role, Room, RoomStatus, RoomType, User
 from backend.web.routes import router as web_router
 from contextlib import asynccontextmanager
-import logging
 from core.config import FRONTEND_DIR, settings
 from core.database import Base, SessionLocal, engine
 from core.security import hash_password, verify_password
@@ -11,8 +10,6 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select,text
 from core.body_limit import RequestBodyLimit
-
-logger=logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,10 +26,11 @@ async def lifespan(app: FastAPI):
             for account in db.scalars(select(User).where(User.is_active.is_(True))):
                 if verify_password('Admin@123', account.password_hash):
                     raise RuntimeError('Change sample account passwords before production startup')
-        if settings.demo_mode and settings.demo_seed_on_start:
-            from backend.services.demo_service import seed_demo
-            result=seed_demo(db,settings.demo_staff_password.get_secret_value())
-            logger.info('Demo seed complete: already_seeded=%s monthly_bookings_added=%s',result['already_seeded'],result.get('monthly_bookings_added',0))
+        if settings.demo_mode:
+            from backend.services.demo_service import extend_existing_demo_months,seed_demo
+            result=seed_demo(db,settings.demo_staff_password.get_secret_value()) if settings.demo_seed_on_start else extend_existing_demo_months(db)
+            if result is not None:
+                print(f"Demo seed complete: already_seeded={result['already_seeded']} monthly_bookings_added={result.get('monthly_bookings_added',0)}",flush=True)
         if settings.seed_demo_data and not settings.demo_mode and not db.scalar(select(RoomType.id).limit(1)):
             deluxe = RoomType(name="Deluxe City View", capacity=2, nightly_rate=980000, amenities="Giường King · Bồn tắm · City view")
             family = RoomType(name="Family Suite", capacity=4, nightly_rate=1650000, amenities="2 phòng ngủ · Bếp nhỏ · Ban công")
