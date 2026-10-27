@@ -32,7 +32,9 @@ def test_surcharge_is_manual_snapshot_once_and_included_in_invoice(client,db,mon
     now(monkeypatch,9)
     assert client.put('/api/frontdesk/policy',json={'check_in_hour':14,'check_out_hour':12,'no_show_hour':23,'early_fee':'100000','late_fee':'200000'}).status_code==200
     booking=create_booking(db,data())
-    assert client.get('/frontdesk').status_code==200
+    frontdesk=client.get('/frontdesk')
+    assert frontdesk.status_code==200
+    assert 'BẢN DEMO' not in frontdesk.text
     assert calculate(booking.id,None,db).total==1800000
     assert client.post(f'/api/frontdesk/{booking.id}/surcharges',json={'kind':'early','expected_amount':'99999'}).status_code==409
     assert client.post(f'/api/frontdesk/{booking.id}/surcharges',json={'kind':'early','expected_amount':'100000'}).status_code==200
