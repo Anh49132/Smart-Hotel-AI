@@ -1,1 +1,131 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Đăng nhập · Lotus Hotel AI</title><link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="/static/css/style.css"></head><body class="login-body"><div class="login-card"><div class="brand justify-content-center mb-4"><span class="brand-mark">L</span><span><b>Lotus Hotel</b><small>Smart Management</small></span></div><h2>Chào mừng trở lại</h2><p class="text-secondary">Đăng nhập để quản lý khách sạn của bạn</p>{% if error %}<div class="alert alert-danger">{{error}}</div>{% endif %}<form method="post"><label class="form-label" for="loginUsername">Tên đăng nhập</label><input class="form-control form-control-lg mb-3" id="loginUsername" name="username" autocomplete="username" required><label class="form-label" for="loginPassword">Mật khẩu</label><input class="form-control form-control-lg mb-4" id="loginPassword" name="password" type="password" autocomplete="current-password" required><button class="btn btn-primary btn-lg w-100">Đăng nhập</button></form>{% if show_demo %}<small class="d-block text-center text-secondary mt-4">Tài khoản demo: admin / Admin@123</small>{% endif %}</div></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1c32">
+  <title>Đăng nhập · Lotus Hotel AI</title>
+  <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-showcase" aria-label="Giới thiệu Lotus Hotel">
+      <a class="login-brand" href="/login" aria-label="Lotus Hotel">
+        <span class="login-brand-mark">L</span>
+        <span><strong>Lotus Hotel</strong><small>SMART MANAGEMENT</small></span>
+      </a>
+
+      <div class="showcase-content">
+        <div class="showcase-eyebrow">Không gian vận hành khách sạn</div>
+        <h1>Mọi trải nghiệm tốt bắt đầu từ sự chu đáo.</h1>
+        <p>Quản lý đặt phòng, khách lưu trú và dịch vụ trong một không gian làm việc gọn gàng.</p>
+
+        <div class="hotel-illustration" aria-hidden="true">
+          <span class="illustration-label">LOTUS HOTEL · FRONT DESK</span>
+          <span class="illustration-moon"></span>
+          <span class="hotel-building">
+            <span class="hotel-roof"></span>
+            <span class="hotel-window window-one"></span>
+            <span class="hotel-window window-two"></span>
+            <span class="hotel-window window-three"></span>
+            <span class="hotel-window window-four"></span>
+            <span class="hotel-door"></span>
+          </span>
+          <span class="hotel-plant plant-one"></span>
+        </div>
+
+        <ul class="showcase-features" aria-label="Tính năng">
+          <li>Quản lý lưu trú</li>
+          <li>Theo dõi dịch vụ</li>
+          <li>Hỗ trợ AI</li>
+        </ul>
+      </div>
+
+      <div class="showcase-footer">
+        <span>Hệ thống dành cho đội ngũ khách sạn</span>
+        <span>© Lotus Hotel</span>
+      </div>
+    </section>
+
+    <section class="login-panel" aria-labelledby="loginTitle">
+      <div class="login-form-wrap">
+        <a class="login-brand mobile-brand" href="/login" aria-label="Lotus Hotel">
+          <span class="login-brand-mark">L</span>
+          <span><strong>Lotus Hotel</strong><small>SMART MANAGEMENT</small></span>
+        </a>
+
+        <div class="form-eyebrow">Khu vực nhân viên</div>
+        <h2 id="loginTitle">Chào mừng trở lại</h2>
+        <p class="login-intro">Đăng nhập để tiếp tục quản lý hoạt động khách sạn.</p>
+
+        {% if error %}<div class="alert alert-danger login-error" role="alert">{{error}}</div>{% endif %}
+
+        <form method="post" class="login-form">
+          <div class="login-field">
+            <label for="loginUsername">Tên đăng nhập</label>
+            <input id="loginUsername" name="username" autocomplete="username" placeholder="Nhập tên đăng nhập" required autofocus>
+          </div>
+
+          <div class="login-field">
+            <label for="loginPassword">Mật khẩu</label>
+            <div class="password-field">
+              <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required>
+              <button class="password-toggle" type="button" id="passwordToggle" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+            </div>
+          </div>
+
+          <div class="login-options">
+            <label class="remember-option" for="rememberUsername">
+              <input id="rememberUsername" type="checkbox">
+              <span>Ghi nhớ tên đăng nhập</span>
+            </label>
+            <a class="support-link" href="#loginHelp">Cần hỗ trợ?</a>
+          </div>
+
+          <button class="login-submit" type="submit">Đăng nhập <span aria-hidden="true">→</span></button>
+        </form>
+
+        {% if show_demo %}<p class="demo-hint">Tài khoản demo: admin / Admin@123</p>{% endif %}
+
+        <div class="login-security"><span aria-hidden="true">▣</span><span>Kết nối bảo mật</span><b>·</b><span>Chỉ dành cho nhân viên</span></div>
+        <p class="login-help" id="loginHelp">Bạn gặp vấn đề khi đăng nhập? Vui lòng liên hệ quản trị viên hệ thống.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const username = document.getElementById('loginUsername');
+      const remember = document.getElementById('rememberUsername');
+      const toggle = document.getElementById('passwordToggle');
+      const password = document.getElementById('loginPassword');
+      const key = 'lotusHotelRememberedUsername';
+
+      try {
+        const savedUsername = localStorage.getItem(key);
+        if (savedUsername) {
+          username.value = savedUsername;
+          remember.checked = true;
+        }
+      } catch (_) {}
+
+      toggle.addEventListener('click', () => {
+        const visible = password.type === 'password';
+        password.type = visible ? 'text' : 'password';
+        toggle.textContent = visible ? 'Ẩn' : 'Hiện';
+        toggle.setAttribute('aria-label', visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+        toggle.setAttribute('aria-pressed', String(visible));
+      });
+
+      document.querySelector('.login-form').addEventListener('submit', () => {
+        try {
+          if (remember.checked) localStorage.setItem(key, username.value.trim());
+          else localStorage.removeItem(key);
+        } catch (_) {}
+      });
+    })();
+  </script>
+</body>
+</html>
