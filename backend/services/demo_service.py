@@ -1,5 +1,5 @@
 """Explicit fake demo fixture. Re-runs never reset passwords, dates or financial data."""
-from datetime import datetime,time,timedelta,timezone
+from datetime import date,datetime,time,timedelta,timezone
 from decimal import Decimal
 from sqlalchemy import select,text,update
 from fastapi import HTTPException
@@ -10,13 +10,70 @@ from .transactions import write_transaction
 
 def stamp(day,hour=11):return datetime.combine(day,time(hour),timezone(timedelta(hours=7))).astimezone(timezone.utc).replace(tzinfo=None)
 
+MONTHLY_SEED='lotus-demo-months-v1'
+
+def seed_monthly_samples(db,year,anchor):
+    if db.get(DemoSeed,MONTHLY_SEED):return 0
+    rooms=db.scalars(select(Room).join(RoomType).where(RoomType.name.like('DEMO %')).order_by(Room.id)).all()
+    customers=db.scalars(select(Customer).where(Customer.full_name.like('Khách Demo %')).order_by(Customer.id)).all()
+    receptionist=db.scalar(select(User).where(User.username=='demo_receptionist'))
+    accountant=db.scalar(select(User).where(User.username=='demo_accountant'))
+    breakfast=db.scalar(select(HotelService).where(HotelService.name=='DEMO Ăn sáng'))
+    if len(rooms)<3 or len(customers)<3 or not receptionist or not accountant or not breakfast:
+        raise HTTPException(409,'Không đủ dữ liệu demo nền để bổ sung booking theo tháng; không thay đổi dữ liệu hiện có')
+
+    schedule=[(8,4),(8,12),(8,21),(9,3),(9,11),(9,19),(10,2),(10,10),(10,17),(11,15),(11,18),(11,21)]
+    for index,(month,day) in enumerate(schedule):
+        start=date(year,month,day);end=start+timedelta(days=2);room=rooms[index%3]
+        status=BookingStatus.checked_out if start<anchor else BookingStatus.confirmed
+        rate=Decimal(room.room_type.nightly_rate)
+        guests=min(room.room_type.capacity,1+(index%4))
+        code=f'DEMO-{year}-{month:02d}-{index%3+1:02d}'
+        booking=Booking(code=code,customer_id=customers[index%len(customers)].id,room_id=room.id,
+            check_in=start,check_out=end,guests=guests,booked_nightly_rate=rate,
+            booked_rate_source='demo_snapshot',status=status,note='Dữ liệu giả phục vụ báo cáo theo tháng',
+            created_at=stamp(start-timedelta(days=14),10))
+        if status==BookingStatus.checked_out:
+            booking.actual_check_in=stamp(start,14);booking.actual_check_out=stamp(end,11)
+        db.add(booking);db.flush()
+        db.add(RoomStay(booking_id=booking.id,room_id=room.id,check_in=start,check_out=end))
+        db.add_all([BookingNight(booking_id=booking.id,stay_date=start+timedelta(days=n),amount=rate,source='DEMO giá mẫu') for n in range(2)])
+        states=[('confirmed',booking.created_at)]
+        if status==BookingStatus.checked_out:
+            states.extend([('checked_in',booking.actual_check_in),('checked_out',booking.actual_check_out)])
+        db.add_all([BookingStatusHistory(booking_id=booking.id,from_status=BookingStatus(states[i-1][0]) if i else None,
+            to_status=BookingStatus(state),changed_by=receptionist.id,changed_at=changed_at)
+            for i,(state,changed_at) in enumerate(states)])
+
+        if status==BookingStatus.checked_out:
+            service_amount=Decimal(breakfast.price)*(1+(index%2))
+            db.add(ServiceUsage(booking_id=booking.id,service_id=breakfast.id,quantity=1+(index%2),unit_price=breakfast.price,used_at=stamp(start,18)))
+            total=rate*2+service_amount
+            invoice=Invoice(booking_id=booking.id,room_amount=rate*2,service_amount=service_amount,total=total,
+                paid_amount=total,payment_status=PaymentStatus.paid,issued_at=stamp(end))
+            db.add(invoice);db.flush()
+            payment=Payment(invoice_id=invoice.id,amount=total,paid_by=accountant.id,paid_at=stamp(end));db.add(payment);db.flush()
+            db.add(MoneyEntry(booking_id=booking.id,payment_id=payment.id,amount=total,kind='payment',method='bank_transfer',
+                reference='DEMO-NO-BANK',request_key=f'demo-month-{booking.code}',actor_id=accountant.id,occurred_at=stamp(end)))
+        else:
+            db.add(MoneyEntry(booking_id=booking.id,payment_id=None,amount=Decimal('200000'),kind='deposit',method='bank_transfer',
+                reference='DEMO-NO-BANK',request_key=f'demo-month-{booking.code}-deposit',actor_id=accountant.id,occurred_at=stamp(start-timedelta(days=3))))
+    db.add(DemoSeed(name=MONTHLY_SEED,anchor_date=anchor))
+    db.flush()
+    return len(schedule)
+
 def seed_demo(db,password,anchor=None):
     if len(password)<12 or len(password.encode('utf-8'))>72:raise ValueError('Demo requires a private password (12+ chars, <=72 UTF-8 bytes)')
     anchor=anchor or hotel_today()
     with write_transaction(db):
         if db.get_bind().dialect.name=='postgresql':db.execute(text('SELECT pg_advisory_xact_lock(3318027022)'))
         else:db.execute(update(User).values(id=User.id))
-        if db.get(DemoSeed,'lotus-demo-v1'):db.rollback();return {'already_seeded':True}
+        marker=db.get(DemoSeed,'lotus-demo-v1')
+        if marker:
+            added=seed_monthly_samples(db,marker.anchor_date.year,anchor)
+            if added:db.commit()
+            else:db.rollback()
+            return {'already_seeded':True,'monthly_bookings_added':added}
         # Do not inject fake fixtures into an operational hotel by accident.
         if db.scalar(select(Booking.id).limit(1)) or db.scalar(select(Room.id).limit(1)):raise HTTPException(409,'Demo seed chỉ chạy vào khách sạn chưa có phòng/booking; không ghi đè dữ liệu hiện có')
         if not db.get(HotelPolicy,1):db.add(HotelPolicy(id=1,cancellation_percent=10,no_show_percent=0))
@@ -71,5 +128,7 @@ def seed_demo(db,password,anchor=None):
         db.add(RoomBlock(room_id=rooms[7].id,start_date=anchor,end_date=anchor+timedelta(days=4),description='DEMO: bảo trì điều hòa',created_by=users[Role.receptionist].id))
         for day in range(1,15):booking(f'FUTURE{day:02}',8+((day-1)%2),day,2)
         booking('NEXTMONTH',10,35,2)
-        db.add(DemoSeed(name='lotus-demo-v1',anchor_date=anchor));db.commit()
-        return {'already_seeded':False,'rooms':12,'bookings':21,'staff':3,'anchor':str(anchor)}
+        db.add(DemoSeed(name='lotus-demo-v1',anchor_date=anchor));db.flush()
+        monthly_added=seed_monthly_samples(db,anchor.year,anchor)
+        db.commit()
+        return {'already_seeded':False,'rooms':12,'bookings':21+monthly_added,'monthly_bookings_added':monthly_added,'staff':3,'anchor':str(anchor)}
