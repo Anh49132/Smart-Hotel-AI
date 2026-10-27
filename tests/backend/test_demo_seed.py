@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 from core.database import Base
 from backend.models import User,Invoice,Booking,MoneyEntry,Room,DemoSeed
-from backend.services.demo_service import seed_demo
+from backend.services.demo_service import extend_existing_demo_months,seed_demo
 import backend.services.demo_service as demo_service
 from backend.services.folio_service import folio
 from backend.services.money_service import net_received
@@ -54,7 +54,7 @@ def test_existing_v1_demo_gets_monthly_samples_without_reseeding(db,monkeypatch)
     assert db.scalar(select(func.count()).select_from(Booking))==21
 
     monkeypatch.setattr(demo_service,'seed_monthly_samples',original)
-    upgraded=seed_demo(db,'PrivateDemo@2030',anchor=date(2026,10,27))
+    upgraded=extend_existing_demo_months(db,anchor=date(2026,10,27))
     assert upgraded=={'already_seeded':True,'monthly_bookings_added':12}
     assert db.scalar(select(func.count()).select_from(Booking))==33
-    assert seed_demo(db,'DifferentPrivate@2030',anchor=date(2026,10,27))=={'already_seeded':True,'monthly_bookings_added':0}
+    assert extend_existing_demo_months(db,anchor=date(2026,10,27))=={'already_seeded':True,'monthly_bookings_added':0}
