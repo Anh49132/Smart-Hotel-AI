@@ -2,6 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
+set "RUN_TEMP=%CD%\.run-tmp"
+if not exist "%RUN_TEMP%" mkdir "%RUN_TEMP%"
+set "TEMP=%RUN_TEMP%"
+set "TMP=%RUN_TEMP%"
+
 set "PYTHON_EXE="
 if defined HOTEL_PYTHON if exist "%HOTEL_PYTHON%" set "PYTHON_EXE=%HOTEL_PYTHON%"
 if not defined PYTHON_EXE if exist "%LocalAppData%\Python\bin\python.exe" set "PYTHON_EXE=%LocalAppData%\Python\bin\python.exe"
@@ -61,7 +66,8 @@ if not exist ".env" (
 )
 
 echo [4/4] Dang chay kiem thu...
-"%VENV_DIR%\Scripts\python.exe" -m pytest -q
+if not exist ".pytest-tmp" mkdir ".pytest-tmp"
+"%VENV_DIR%\Scripts\python.exe" -m pytest -q --disable-warnings --basetemp="%CD%\.pytest-tmp"
 if errorlevel 1 goto :testerror
 
 echo.

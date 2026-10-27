@@ -3,6 +3,8 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+/.pytest-tmp/
+/.run-tmp/
 .venv.requirements-ok
 
 # Cấu hình chứa thông tin bí mật
