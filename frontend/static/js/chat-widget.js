@@ -56,7 +56,7 @@
 
   function render() {
     box.replaceChildren();
-    if (!history.length) bubble('assistant', 'Xin chào! Tôi có thể tra cứu phòng, giá, dịch vụ và hướng dẫn quy trình trên hệ thống.');
+    if (!history.length) bubble('assistant', 'Xin chào! Mình có thể hỗ trợ về phòng, tiện ích, dịch vụ và quy trình lưu trú. Quản trị viên/kế toán cũng có thể hỏi báo cáo theo tháng; hồ sơ khách được tra cứu trong mục Khách hàng.');
     history.forEach(item => bubble(item.role, item.content));
   }
 
